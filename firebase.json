@@ -1,0 +1,40 @@
+{
+  "hosting": {
+    "target": "admin",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "maruthi-eats",
+          "appId": "1:119948554671:android:e1b3dbb30f28e1f7b23f5a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "maruthi-eats",
+          "configurations": {
+            "android": "1:119948554671:android:e1b3dbb30f28e1f7b23f5a",
+            "ios": "1:119948554671:ios:a087639bd48aeeb0b23f5a",
+            "macos": "1:119948554671:ios:a087639bd48aeeb0b23f5a",
+            "web": "1:119948554671:web:c8a050aa0f5148d5b23f5a",
+            "windows": "1:119948554671:web:0057060ab4d37193b23f5a"
+          }
+        }
+      }
+    }
+  }
+}

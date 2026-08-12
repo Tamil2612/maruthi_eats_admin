@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "maruthi-eats"
+  },
+  "targets": {
+    "maruthi-eats": {
+      "hosting": {
+        "admin": [
+          "maruthi-eats-admin"
+        ]
+      }
+    }
+  }
+}
