@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'orders_screen.dart';
 import 'menu_management_screen.dart';
 import 'reports_screen.dart';
+import 'promotions_parent_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -19,6 +20,7 @@ class _HomeShellState extends State<HomeShell> {
     OrdersScreen(),
     MenuManagementScreen(),
     ReportsScreen(),
+    PromotionsParentScreen(),
   ];
 
   @override
@@ -44,17 +46,30 @@ class _HomeShellState extends State<HomeShell> {
             activeIcon: _buildIcon('assets/icons/reports.png', true),
             label: 'Reports',
           ),
+          BottomNavigationBarItem(
+            icon: _buildIcon('assets/icons/coupon.png', false,
+                width: 24.w, height: 28.h),
+            activeIcon: _buildIcon('assets/icons/coupon.png', true,
+                width: 24.w, height: 28.h),
+            label: 'Offers',
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIcon(String path, bool active) {
+  Widget _buildIcon(
+    String path,
+    bool active, {
+    double? width,
+    double? height,
+  }) {
     return Image.asset(
       path,
-      width: 32.w,
-      height: 32.w,
-      color: active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
+      width: width ?? 32.w,
+      height: height ?? 32.w,
+      color:
+          active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
     );
   }
 }

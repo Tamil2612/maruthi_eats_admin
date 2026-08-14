@@ -1,34 +1,111 @@
-# Implementation Plan - Exclusively Custom Splash Screen
+# Implementation Plan - Fix Firestore Permissions for Promotions
 
-Remove the logo from the native OS splash screen and activate the animated Flutter splash screen. This ensures the user only sees your custom-branded animation during the app's initial load.
+The `PERMISSION_DENIED` error occurs because the new `coupons` and `offers` collections haven't been added to your Firestore Security Rules.
 
 ## User Review Required
 
-> [!NOTE]
-> All Android apps have a "Native Splash" that shows while the OS is loading the app's process. I will set this to a solid **Cream** background to match your app, which effectively "hides" it until your custom animated splash screen takes over.
+> [!IMPORTANT]
+> **Action Required in Firebase Console:**
+> You must manually copy and paste the updated rules below into your [Firebase Console](https://console.firebase.google.com/) → Firestore Database → Rules.
 
 ## Proposed Changes
 
-### 1. App Flow Activation
+### Firestore Security Rules (Update in Console)
 
-#### [MODIFY] [main.dart](file:///home/tamizharasan/AndroidStudioProjects/maruthi_eats_admin/lib/main.dart)
-- Update the `home` property of `MaterialApp` to use the `SplashScreen` widget.
-- Import `screens/splash_screen.dart`.
+I have added the rules for the `coupons` and `offers` collections. These rules allow any signed-in user to read them (so they show up in the app) but only staff/admins can create or edit them.
 
-### 2. Native Background Cleanup (Android)
+```javascript
+rules_version = '2';
 
-I will remove any logo references from the native Android launch screens so they appear as a solid brand color.
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-#### [MODIFY] [launch_background.xml](file:///home/tamizharasan/AndroidStudioProjects/maruthi_eats_admin/android/app/src/main/res/drawable/launch_background.xml)
-- Change the background drawable to a solid color (`#FFF8E7`).
-- Remove the `<item>` containing the `splash` bitmap.
+    // ── Helpers ──────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-#### [MODIFY] [launch_background.xml](file:///home/tamizharasan/AndroidStudioProjects/maruthi_eats_admin/android/app/src/main/res/drawable-v21/launch_background.xml)
-- Apply the same solid color update for newer Android versions.
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── /users/{uid} ─────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid);
+
+       match /{allSubcollections=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ── /menu_items/{itemId} ─────────────────────────────────
+    match /menu_items/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── /categories/{categoryId} ─────────────────────────────
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── /coupons/{couponId} ──────────────────────────────────
+    match /coupons/{couponId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── /offers/{offerId} ────────────────────────────────────
+    match /offers/{offerId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── /orders/{orderId} ────────────────────────────────────
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.customer_id == request.auth.uid);
+      allow create: if isSignedIn()
+                    && request.resource.data.customer_id == request.auth.uid
+                    && request.resource.data.order_status == 'placed'
+                    && request.resource.data.payment_status in ['pending', 'cod_pending'];
+      allow update: if isAdmin()
+                    || (isSignedIn()
+                        && resource.data.customer_id == request.auth.uid
+                        && resource.data.order_status == 'placed'
+                        && request.resource.data.order_status == 'cancelled'
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['order_status', 'updated_at']));
+      allow delete: if false;
+
+      match /status_log/{logId} {
+        allow read: if isAdmin()
+                    || (isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.customer_id == request.auth.uid);
+        allow write: if isAdmin();
+      }
+    }
+
+    // ── /staff/{uid} ──────────────────────────────────────────
+    match /staff/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ── /delivery_partners/{partnerId} ───────────────────────
+    match /delivery_partners/{partnerId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
+```
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Launch the App**: When the app icon is tapped, you should see a solid cream screen for a split second (native OS load).
-2.  **Animation Check**: Immediately after, the **Maruthi Eats** logo should fade in and animate via your custom `SplashScreen` widget.
-3.  **Handoff**: Verify there is no "double logo" flicker during the transition from the OS to Flutter.
+1.  **Apply Rules**: Copy the code above into the Firebase Console and click **Publish**.
+2.  **Verify Coupons**: Open the Coupons tab in the Admin App. The "Permission Denied" error should disappear, and you should be able to see/create coupons.
+3.  **Verify Offers**: Switch to the Special Offers tab. You should now be able to see/create offers without errors.

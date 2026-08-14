@@ -1,8 +1,10 @@
-# Task List - Activate Custom Splash & Clean Native Launch
+# Task List - Advanced Promotions & Special Offers
 
-- `[x]` Update `lib/main.dart` to use `SplashScreen`
-- `[x]` Define `splash_bg` color in Android resources
-- `[x]` Update `launch_background.xml` (standard) to solid cream
-- `[x]` Update `launch_background.xml` (v21) to solid cream
-- `[x]` Verify smooth transition
+- `[x]` Create `lib/models/offer.dart`
+- `[x]` Create `lib/widgets/menu_item_picker.dart`
+- `[x]` Create `lib/screens/offer_form_screen.dart`
+- `[x]` Create `lib/screens/offer_management_screen.dart`
+- `[x]` Create `lib/screens/promotions_parent_screen.dart`
+- `[x]` Update `lib/screens/home_shell.dart` and `CouponManagementScreen`
+- `[x]` Verify Firestore integration and UI
 - `[x]` Create walkthrough

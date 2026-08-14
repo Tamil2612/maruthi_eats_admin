@@ -12,6 +12,7 @@ class Assets {
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
+  final AssetGenImage coupon = const AssetGenImage('assets/icons/coupon.png');
   final AssetGenImage home = const AssetGenImage('assets/icons/home.png');
   final AssetGenImage menu = const AssetGenImage('assets/icons/menu.png');
   final AssetGenImage reports = const AssetGenImage('assets/icons/reports.png');
@@ -21,6 +22,8 @@ class $AssetsLogoGen {
   const $AssetsLogoGen();
 
   final AssetGenImage logo = const AssetGenImage('assets/logo/logo.png');
+  final AssetGenImage logoTransparent =
+      const AssetGenImage('assets/logo/logo_transparent.png');
 }
 
 class AssetGenImage {
