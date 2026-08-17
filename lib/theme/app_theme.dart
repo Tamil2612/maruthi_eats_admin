@@ -27,7 +27,6 @@ class AppTheme {
         primary: AppColors.maroon,
         secondary: AppColors.gold,
         surface: AppColors.white,
-        background: AppColors.cream,
         error: AppColors.error,
       ),
       textTheme: baseTextTheme.apply(
@@ -60,7 +59,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.white,
         elevation: 1.5,
-        shadowColor: AppColors.maroon.withOpacity(0.08),
+        shadowColor: AppColors.maroon.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
@@ -69,11 +68,11 @@ class AppTheme {
         fillColor: AppColors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.maroon.withOpacity(0.2)),
+          borderSide: BorderSide(color: AppColors.maroon.withValues(alpha: 0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.maroon.withOpacity(0.2)),
+          borderSide: BorderSide(color: AppColors.maroon.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -90,7 +89,7 @@ class AppTheme {
         elevation: 8,
       ),
       dividerTheme: DividerThemeData(
-        color: AppColors.textDark.withOpacity(0.08),
+        color: AppColors.textDark.withValues(alpha: 0.08),
         thickness: 1,
       ),
     );

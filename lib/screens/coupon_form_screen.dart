@@ -98,8 +98,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    _expiryDate == null 
-                        ? 'Set Expiry Date' 
+                    _expiryDate == null
+                        ? 'Set Expiry Date'
                         : 'Expires: ${DateFormat('dd MMM yyyy').format(_expiryDate!)}',
                     style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
                   ),
@@ -129,8 +129,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
                 onPressed: _saving ? null : _save,
                 child: _saving
                     ? SizedBox(
-                        height: 20.sp, width: 20.sp,
-                        child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
+                    height: 20.sp, width: 20.sp,
+                    child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
                     : Text(isEditing ? 'Save Changes' : 'Create Coupon'),
               ),
             ),
@@ -171,7 +171,7 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
   Future<void> _save() async {
     final code = _code.text.trim();
     final amount = double.tryParse(_amount.text.trim()) ?? 0;
-    
+
     if (code.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Valid code and amount are required')),
@@ -181,17 +181,31 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
 
     setState(() => _saving = true);
 
-    final data = {
-      'code': code.toUpperCase(),
-      'amount': amount,
-      'min_order_value': double.tryParse(_minOrder.text.trim()) ?? 0,
-      'expiry_date': _expiryDate != null ? Timestamp.fromDate(_expiryDate!) : null,
-      'rules': _rules.text.trim(),
-      'is_active': _isActive,
-    };
-
     try {
       final collection = FirebaseFirestore.instance.collection('coupons');
+      final normalizedCode = code.toUpperCase();
+
+      final existing = await collection.where('code', isEqualTo: normalizedCode).get();
+      final duplicateExists = existing.docs.any((doc) => doc.id != widget.existing?.id);
+      if (duplicateExists) {
+        setState(() => _saving = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('A coupon with code "$normalizedCode" already exists')),
+          );
+        }
+        return;
+      }
+
+      final data = {
+        'code': normalizedCode,
+        'amount': amount,
+        'min_order_value': double.tryParse(_minOrder.text.trim()) ?? 0,
+        'expiry_date': _expiryDate != null ? Timestamp.fromDate(_expiryDate!) : null,
+        'rules': _rules.text.trim(),
+        'is_active': _isActive,
+      };
+
       if (widget.existing != null) {
         await collection.doc(widget.existing!.id).update(data);
       } else {

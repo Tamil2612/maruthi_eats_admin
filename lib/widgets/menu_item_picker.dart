@@ -4,6 +4,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/menu_item.dart';
 import '../theme/app_theme.dart';
 
+/// Result of a multi-select [MenuItemPicker] session: newly checked items
+/// plus the ids of any previously-selected items the user unchecked, so
+/// callers can both add and remove from their existing selection.
+class MenuItemPickerResult {
+  final List<MenuItem> added;
+  final Set<String> removedIds;
+  const MenuItemPickerResult({required this.added, required this.removedIds});
+}
+
 class MenuItemPicker extends StatefulWidget {
   final bool multiSelect;
   final List<String> initialSelectedIds;
@@ -20,6 +29,7 @@ class MenuItemPicker extends StatefulWidget {
 
 class _MenuItemPickerState extends State<MenuItemPicker> {
   final List<MenuItem> _selectedItems = [];
+  final Set<String> _deselectedInitialIds = {};
   String _searchQuery = '';
 
   @override
@@ -42,7 +52,10 @@ class _MenuItemPickerState extends State<MenuItemPicker> {
               ),
               if (widget.multiSelect)
                 TextButton(
-                  onPressed: () => Navigator.pop(context, _selectedItems),
+                  onPressed: () => Navigator.pop(context, MenuItemPickerResult(
+                    added: _selectedItems,
+                    removedIds: _deselectedInitialIds,
+                  )),
                   child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
                 )
               else
@@ -80,8 +93,9 @@ class _MenuItemPickerState extends State<MenuItemPicker> {
                   separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
                   itemBuilder: (context, index) {
                     final item = items[index];
-                    final isSelected = _selectedItems.any((i) => i.id == item.id) || 
-                                     widget.initialSelectedIds.contains(item.id);
+                    final isPreSelected = widget.initialSelectedIds.contains(item.id) &&
+                        !_deselectedInitialIds.contains(item.id);
+                    final isSelected = _selectedItems.any((i) => i.id == item.id) || isPreSelected;
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -95,23 +109,29 @@ class _MenuItemPickerState extends State<MenuItemPicker> {
                       subtitle: Text('₹${item.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 12.sp)),
                       trailing: widget.multiSelect
                           ? Checkbox(
-                              value: isSelected,
-                              activeColor: AppColors.maroon,
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    _selectedItems.add(item);
-                                  } else {
-                                    _selectedItems.removeWhere((i) => i.id == item.id);
-                                  }
-                                });
-                              },
-                            )
-                          : Icon(isSelected ? Icons.check_circle : Icons.add_circle_outline, 
-                                 color: isSelected ? AppColors.maroon : Colors.grey),
-                      onTap: widget.multiSelect 
-                        ? null 
-                        : () => Navigator.pop(context, item),
+                        value: isSelected,
+                        activeColor: AppColors.maroon,
+                        onChanged: (val) {
+                          setState(() {
+                            if (val == true) {
+                              _deselectedInitialIds.remove(item.id);
+                              if (!_selectedItems.any((i) => i.id == item.id)) {
+                                _selectedItems.add(item);
+                              }
+                            } else {
+                              _selectedItems.removeWhere((i) => i.id == item.id);
+                              if (widget.initialSelectedIds.contains(item.id)) {
+                                _deselectedInitialIds.add(item.id);
+                              }
+                            }
+                          });
+                        },
+                      )
+                          : Icon(isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                          color: isSelected ? AppColors.maroon : Colors.grey),
+                      onTap: widget.multiSelect
+                          ? null
+                          : () => Navigator.pop(context, item),
                     );
                   },
                 );

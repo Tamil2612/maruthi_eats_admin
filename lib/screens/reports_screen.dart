@@ -16,7 +16,7 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   DateTimeRange _selectedRange = DateTimeRange(
     start:
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
     end: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day,
         23, 59, 59),
   );
@@ -52,7 +52,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   .collection('orders')
                   .where('order_status', isEqualTo: 'delivered')
                   .where('created_at',
-                      isGreaterThanOrEqualTo: _selectedRange.start)
+                  isGreaterThanOrEqualTo: _selectedRange.start)
                   .where('created_at', isLessThanOrEqualTo: _selectedRange.end)
                   .orderBy('created_at', descending: true)
                   .snapshots(),
@@ -63,12 +63,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child:
-                          CircularProgressIndicator(color: AppColors.maroon));
+                      CircularProgressIndicator(color: AppColors.maroon));
                 }
 
                 final orders = snapshot.data!.docs
                     .map((d) => OrderModel.fromFirestore(
-                        d.id, d.data() as Map<String, dynamic>))
+                    d.id, d.data() as Map<String, dynamic>))
                     .toList();
 
                 return CustomScrollView(
@@ -91,7 +91,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 16.w),
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
-                            (context, index) =>
+                                (context, index) =>
                                 _buildOrderCompactCard(orders[index]),
                             childCount: orders.length,
                           ),
@@ -115,7 +115,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         color: AppColors.white,
         border: Border(
             bottom:
-                BorderSide(color: AppColors.maroon.withValues(alpha: 0.05))),
+            BorderSide(color: AppColors.maroon.withValues(alpha: 0.05))),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -185,7 +185,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildPremiumHeader(List<OrderModel> orders) {
-    double totalSales = orders.fold(0, (sum, item) => sum + item.total);
+    double totalSales = orders.fold(0, (acc, item) => acc + item.total);
+    double totalDiscounts =
+        orders.fold(0, (acc, item) => acc + item.couponDiscount);
     int totalOrders = orders.length;
 
     return Padding(
@@ -213,7 +215,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
                 Container(
                   padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20.r),
@@ -221,8 +223,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Text(
                     DateFormat('dd MMM yyyy').format(_selectedRange.start) +
                         (_selectedRange.start.day == _selectedRange.end.day &&
-                                _selectedRange.start.month ==
-                                    _selectedRange.end.month
+                            _selectedRange.start.month ==
+                                _selectedRange.end.month
                             ? ''
                             : ' - ${DateFormat('dd MMM yyyy').format(_selectedRange.end)}'),
                     style: TextStyle(
@@ -253,6 +255,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           16.verticalSpace,
           _metricBox('Total Orders', totalOrders.toString(),
               Icons.receipt_long_outlined),
+          if (totalDiscounts > 0) ...[
+            12.verticalSpace,
+            _metricBox('Coupon Discounts Given', '₹${totalDiscounts.toStringAsFixed(0)}',
+                Icons.local_offer_outlined),
+          ],
         ],
       ),
     );
@@ -359,7 +366,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 12.sp)),
                   2.verticalSpace,
-                  Text(DateFormat('hh:mm a').format(order.createdAt!),
+                  Text(
+                      order.createdAt != null ? DateFormat('hh:mm a').format(order.createdAt!) : '--',
                       style: TextStyle(color: Colors.grey, fontSize: 10.sp)),
                 ],
               ),

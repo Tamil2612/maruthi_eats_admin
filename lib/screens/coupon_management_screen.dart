@@ -28,7 +28,7 @@ class CouponManagementScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.local_offer_outlined, size: 64.sp, color: AppColors.gold.withOpacity(0.3)),
+                  Icon(Icons.local_offer_outlined, size: 64.sp, color: AppColors.gold.withValues(alpha: 0.3)),
                   16.verticalSpace,
                   const Text('No coupons created yet', style: TextStyle(fontWeight: FontWeight.bold)),
                   24.verticalSpace,
@@ -77,7 +77,7 @@ class _CouponCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: ListTile(
@@ -91,7 +91,7 @@ class _CouponCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
               decoration: BoxDecoration(
-                color: AppColors.maroon.withOpacity(0.1),
+                color: AppColors.maroon.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(

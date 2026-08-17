@@ -7,6 +7,7 @@ import '../models/menu_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/form_section.dart';
 import '../widgets/menu_item_picker.dart';
+import '../widgets/image_preview.dart';
 
 class OfferFormScreen extends StatefulWidget {
   final OfferModel? existing;
@@ -20,10 +21,11 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _description;
   late final TextEditingController _comboPrice;
+  late final TextEditingController _imageUrl;
   OfferType _type = OfferType.combo;
   bool _isActive = true;
   DateTime? _expiryDate;
-  
+
   // Combo fields
   List<OfferItem> _bundleItems = [];
 
@@ -42,13 +44,24 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
     _title = TextEditingController(text: e?.title ?? '');
     _description = TextEditingController(text: e?.description ?? '');
     _comboPrice = TextEditingController(text: e != null ? e.comboPrice.toStringAsFixed(0) : '');
+    _imageUrl = TextEditingController(text: e?.imageUrl ?? '');
+    _imageUrl.addListener(() => setState(() {}));
     _type = e?.type ?? OfferType.combo;
     _isActive = e?.isActive ?? true;
     _expiryDate = e?.expiryDate;
     _bundleItems = List.from(e?.bundleItems ?? []);
-    
-    // In a real app, you'd fetch the MenuItem objects if buyItemId exists. 
+
+    // In a real app, you'd fetch the MenuItem objects if buyItemId exists.
     // For now, if editing BOGO, we might just show names or require re-selection.
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    _comboPrice.dispose();
+    _imageUrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,6 +74,13 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
         child: Column(
           children: [
             _buildTypeSelector(),
+            20.verticalSpace,
+            ImagePreview(imageUrl: _imageUrl.text),
+            12.verticalSpace,
+            TextField(
+              controller: _imageUrl,
+              decoration: const InputDecoration(hintText: 'Image URL', prefixIcon: Icon(Icons.link)),
+            ),
             20.verticalSpace,
             FormSection(
               title: 'General Info',
@@ -103,8 +123,8 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
-                child: _saving 
-                    ? const CircularProgressIndicator(color: AppColors.textDark) 
+                child: _saving
+                    ? const CircularProgressIndicator(color: AppColors.textDark)
                     : Text(isEditing ? 'Save Changes' : 'Create Offer'),
               ),
             ),
@@ -245,14 +265,15 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
   );
 
   void _pickBundleItems() async {
-    final List<MenuItem>? results = await showModalBottomSheet<List<MenuItem>>(
+    final result = await showModalBottomSheet<MenuItemPickerResult>(
       context: context,
       isScrollControlled: true,
       builder: (_) => MenuItemPicker(multiSelect: true, initialSelectedIds: _bundleItems.map((e) => e.itemId).toList()),
     );
-    if (results != null) {
+    if (result != null) {
       setState(() {
-        for (var res in results) {
+        _bundleItems.removeWhere((e) => result.removedIds.contains(e.itemId));
+        for (var res in result.added) {
           if (!_bundleItems.any((e) => e.itemId == res.id)) {
             _bundleItems.add(OfferItem(itemId: res.id, itemName: res.name, qty: 1));
           }
@@ -284,14 +305,41 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
   }
 
   Future<void> _save() async {
-    if (_title.text.isEmpty) {
+    if (_title.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Title is required')));
       return;
     }
+
+    if (_type == OfferType.combo) {
+      if (_bundleItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Add at least one item to the bundle')),
+        );
+        return;
+      }
+      final comboPrice = double.tryParse(_comboPrice.text.trim()) ?? 0;
+      if (comboPrice <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bundle price must be greater than zero')),
+        );
+        return;
+      }
+    } else {
+      final hasBuyItem = _buyItem != null || widget.existing?.buyItemId != null;
+      final hasGetItem = _getItem != null || widget.existing?.getItemId != null;
+      if (!hasBuyItem || !hasGetItem) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select both a "Buy" item and a "Get FREE" item')),
+        );
+        return;
+      }
+    }
+
     setState(() => _saving = true);
     final data = {
       'title': _title.text.trim(),
       'description': _description.text.trim(),
+      'image_url': _imageUrl.text.trim(),
       'type': _type == OfferType.bogo ? 'bogo' : 'combo',
       'is_active': _isActive,
       'expiry_date': _expiryDate != null ? Timestamp.fromDate(_expiryDate!) : null,

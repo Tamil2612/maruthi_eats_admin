@@ -43,7 +43,7 @@ class OrderDetailScreen extends StatelessWidget {
                   4.verticalSpace,
                   Text(
                     _formatTime(order.createdAt!),
-                    style: TextStyle(color: AppColors.textDark.withOpacity(0.5), fontSize: 12.sp),
+                    style: TextStyle(color: AppColors.textDark.withValues(alpha: 0.5), fontSize: 12.sp),
                   ),
                 ],
                 24.verticalSpace,
@@ -66,7 +66,7 @@ class OrderDetailScreen extends StatelessWidget {
                 _InfoCard(
                   child: Text(
                     order.deliveryAddress,
-                    style: TextStyle(color: AppColors.textDark.withOpacity(0.8), fontSize: 14.sp),
+                    style: TextStyle(color: AppColors.textDark.withValues(alpha: 0.8), fontSize: 14.sp),
                   ),
                 ),
                 24.verticalSpace,
@@ -75,7 +75,7 @@ class OrderDetailScreen extends StatelessWidget {
                 _SectionTitle(title: 'Payment Information', icon: Icons.payments_outlined),
                 8.verticalSpace,
                 _PaymentCard(order: order),
-                
+
                 if (order.paymentMode == 'cod' && order.paymentStatus != 'cod_collected') ...[
                   12.verticalSpace,
                   SizedBox(
@@ -91,7 +91,7 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                
+
                 32.verticalSpace,
 
                 // Actions Section
@@ -170,7 +170,9 @@ class OrderDetailScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
-      await _updateStatus(context, OrderStatus.cancelled);
+      if (context.mounted) {
+        await _updateStatus(context, OrderStatus.cancelled);
+      }
     }
   }
 
@@ -216,7 +218,7 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -252,12 +254,12 @@ class _CustomerInfoCard extends StatelessWidget {
                 children: [
                   Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
                   4.verticalSpace,
-                  Text(phone, style: TextStyle(color: AppColors.textDark.withOpacity(0.6), fontSize: 12.sp)),
+                  Text(phone, style: TextStyle(color: AppColors.textDark.withValues(alpha: 0.6), fontSize: 12.sp)),
                 ],
               ),
               IconButton.filled(
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.success.withOpacity(0.1), 
+                  backgroundColor: AppColors.success.withValues(alpha: 0.1),
                   foregroundColor: AppColors.success,
                   padding: EdgeInsets.all(8.w),
                   minimumSize: Size.zero,
@@ -285,33 +287,112 @@ class _ItemsCard extends StatelessWidget {
           ...order.items.map((item) {
             final qty = (item['qty'] ?? 1) as int;
             final price = (item['price'] ?? 0).toDouble();
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item['name']} × $qty',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13.sp),
+            final isCombo = item['is_combo'] == true;
+            final bundleItems = item['bundle_items'] as List?;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6.h),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item['name']} × $qty',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13.sp,
+                            color:
+                                isCombo ? AppColors.maroon : AppColors.textDark,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '₹${(price * qty).toStringAsFixed(0)}',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 13.sp),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isCombo && bundleItems != null)
+                  Padding(
+                    padding: EdgeInsets.only(left: 12.w, bottom: 8.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: bundleItems.map((bi) {
+                        final bMap = bi as Map<String, dynamic>;
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 1.h),
+                          child: Text(
+                            '• ${bMap['qty']}x ${bMap['item_name']}',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
-                  Text(
-                    '₹${(price * qty).toStringAsFixed(0)}',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.sp),
-                  ),
-                ],
-              ),
+              ],
             );
           }),
           Divider(height: 20.h),
+          if (order.itemTotal != null) _billRow('Item Total', order.itemTotal!),
+          if (order.couponDiscount > 0)
+            _billRow(
+              order.couponCode != null
+                  ? 'Coupon (${order.couponCode})'
+                  : 'Coupon Discount',
+              -order.couponDiscount,
+              isDiscount: true,
+            ),
+          if (order.deliveryFee != null)
+            _billRow('Delivery Fee', order.deliveryFee!),
+          if (order.itemTotal != null || order.deliveryFee != null)
+            8.verticalSpace,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Amount', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
+              Text('Total Amount',
+                  style:
+                      TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
               Text('₹${order.total.toStringAsFixed(0)}',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16.sp, color: AppColors.maroon)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16.sp,
+                      color: AppColors.maroon)),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _billRow(String label, double amount, {bool isDiscount = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: isDiscount ? AppColors.success : AppColors.textDark.withValues(alpha: 0.6),
+            ),
+          ),
+          Text(
+            '${amount < 0 ? "-" : ""}₹${amount.abs().toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: isDiscount ? AppColors.success : AppColors.textDark.withValues(alpha: 0.8),
+            ),
           ),
         ],
       ),
@@ -333,14 +414,14 @@ class _PaymentCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(order.paymentMode == 'upi' ? 'UPI Payment' : 'Cash on Delivery', 
+              Text(order.paymentMode == 'upi' ? 'UPI Payment' : 'Cash on Delivery',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.sp)),
               4.verticalSpace,
-              Text(order.paymentStatus.toUpperCase(), 
+              Text(order.paymentStatus.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 10.sp, 
-                    fontWeight: FontWeight.bold,
-                    color: isPaid ? AppColors.success : AppColors.warning
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isPaid ? AppColors.success : AppColors.warning
                   )),
             ],
           ),

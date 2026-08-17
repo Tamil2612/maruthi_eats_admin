@@ -77,6 +77,10 @@ class OrderModel {
   final String customerId;
   final List<Map<String, dynamic>> items;
   final double total;
+  final double? itemTotal;
+  final double? deliveryFee;
+  final String? couponCode;
+  final double couponDiscount;
   final String paymentMode; // 'upi' | 'cod'
   final String paymentStatus;
   final OrderStatus orderStatus;
@@ -88,6 +92,10 @@ class OrderModel {
     required this.customerId,
     required this.items,
     required this.total,
+    this.itemTotal,
+    this.deliveryFee,
+    this.couponCode,
+    this.couponDiscount = 0.0,
     required this.paymentMode,
     required this.paymentStatus,
     required this.orderStatus,
@@ -99,7 +107,7 @@ class OrderModel {
     // Safely parse items list with defaults
     final rawItems = data['items'] as List?;
     final List<Map<String, dynamic>> parsedItems = [];
-    
+
     if (rawItems != null) {
       for (var item in rawItems) {
         if (item is Map) {
@@ -107,6 +115,8 @@ class OrderModel {
             'name': item['name'] ?? 'Unknown Item',
             'qty': (item['qty'] ?? 1).toInt(),
             'price': (item['price'] ?? 0).toDouble(),
+            'is_combo': item['is_combo'] ?? false,
+            'bundle_items': item['bundle_items'] as List?,
           });
         }
       }
@@ -117,6 +127,10 @@ class OrderModel {
       customerId: data['customer_id'] ?? '',
       items: parsedItems,
       total: (data['total'] ?? 0).toDouble(),
+      itemTotal: data['item_total'] != null ? (data['item_total'] as num).toDouble() : null,
+      deliveryFee: data['delivery_fee'] != null ? (data['delivery_fee'] as num).toDouble() : null,
+      couponCode: data['coupon_code'],
+      couponDiscount: (data['coupon_discount'] ?? 0).toDouble(),
       paymentMode: data['payment_mode'] ?? 'cod',
       paymentStatus: data['payment_status'] ?? 'pending',
       orderStatus: orderStatusFromString(data['order_status'] ?? 'placed'),

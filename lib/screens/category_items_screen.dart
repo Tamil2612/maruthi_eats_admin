@@ -46,7 +46,7 @@ class CategoryItemsScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.restaurant_menu, size: 64.sp, color: AppColors.gold.withOpacity(0.5)),
+                  Icon(Icons.restaurant_menu, size: 64.sp, color: AppColors.gold.withValues(alpha: 0.5)),
                   16.verticalSpace,
                   Text('No items in this category', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500)),
                   24.verticalSpace,
@@ -96,7 +96,7 @@ class _MenuItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: AppColors.maroon.withOpacity(0.05),
+            color: AppColors.maroon.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -161,7 +161,7 @@ class _MenuItemCard extends StatelessWidget {
                         item.description,
                         style: TextStyle(
                           fontSize: 11.sp,
-                          color: AppColors.textDark.withOpacity(0.6),
+                          color: AppColors.textDark.withValues(alpha: 0.6),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

@@ -90,7 +90,7 @@ class _OrdersList extends StatelessWidget {
 
         final allOrders = snapshot.data!.docs
             .map((d) => OrderModel.fromFirestore(
-                d.id, d.data() as Map<String, dynamic>))
+            d.id, d.data() as Map<String, dynamic>))
             .toList();
 
         final filtered = allOrders.where((o) {
@@ -111,7 +111,7 @@ class _OrdersList extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.receipt_long_outlined,
-                    size: 64.sp, color: AppColors.gold.withOpacity(0.3)),
+                    size: 64.sp, color: AppColors.gold.withValues(alpha: 0.3)),
                 16.verticalSpace,
                 Text(
                   statusGroup == _StatusGroup.active
@@ -158,7 +158,7 @@ class _OrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -173,7 +173,7 @@ class _OrderCard extends StatelessWidget {
                 Text(
                   'Order #${order.id.substring(0, 6).toUpperCase()}',
                   style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
                 ),
                 StatusBadge(status: order.orderStatus),
               ],
@@ -241,7 +241,7 @@ class _OrderCard extends StatelessWidget {
                     onPressed: () => _updateStatus(context, next),
                     style: ElevatedButton.styleFrom(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                       textStyle: TextStyle(fontSize: 12.sp),
                     ),
                     child: Text(
@@ -258,10 +258,15 @@ class _OrderCard extends StatelessWidget {
 
   Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(order.id)
-          .update({'order_status': orderStatusToString(status)});
+      final orderRef = FirebaseFirestore.instance.collection('orders').doc(order.id);
+      await orderRef.update({
+        'order_status': orderStatusToString(status),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      await orderRef.collection('status_log').add({
+        'status': orderStatusToString(status),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

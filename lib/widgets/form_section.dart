@@ -24,7 +24,7 @@ class FormSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 11.sp,
               fontWeight: FontWeight.bold,
-              color: AppColors.maroon.withOpacity(0.7),
+              color: AppColors.maroon.withValues(alpha: 0.7),
               letterSpacing: 1.1,
             ),
           ),
@@ -36,7 +36,7 @@ class FormSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(16.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

@@ -25,7 +25,7 @@ class OfferManagementScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.stars_outlined, size: 64.sp, color: AppColors.gold.withOpacity(0.3)),
+                  Icon(Icons.stars_outlined, size: 64.sp, color: AppColors.gold.withValues(alpha: 0.3)),
                   16.verticalSpace,
                   const Text('No special offers created yet', style: TextStyle(fontWeight: FontWeight.bold)),
                   24.verticalSpace,
@@ -64,7 +64,7 @@ class _OfferCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
       ),
       child: ListTile(
         contentPadding: EdgeInsets.all(16.w),
@@ -114,7 +114,7 @@ class _TypeBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: (isCombo ? Colors.blue : Colors.orange).withOpacity(0.1),
+        color: (isCombo ? Colors.blue : Colors.orange).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(

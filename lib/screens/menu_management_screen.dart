@@ -112,7 +112,7 @@ class MenuManagementScreen extends StatelessWidget {
                         top: 4.h,
                         right: 4.w,
                         child: CircleAvatar(
-                          backgroundColor: Colors.white.withOpacity(0.8),
+                          backgroundColor: Colors.white.withValues(alpha: 0.8),
                           radius: 16.r,
                           child: IconButton(
                             icon: Icon(Icons.edit, size: 16.sp, color: AppColors.maroon),

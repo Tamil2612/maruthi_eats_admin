@@ -22,7 +22,7 @@ class ImagePreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cream,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.maroon.withOpacity(0.1)),
+        border: Border.all(color: AppColors.maroon.withValues(alpha: 0.1)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20.r),
@@ -56,7 +56,7 @@ class ImagePreview extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            color: AppColors.maroon.withOpacity(0.4),
+            color: AppColors.maroon.withValues(alpha: 0.4),
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
           ),
