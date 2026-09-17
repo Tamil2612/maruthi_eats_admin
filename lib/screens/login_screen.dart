@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
@@ -18,61 +19,75 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.all(18),
+                    padding: EdgeInsets.all(18.w),
                     decoration: const BoxDecoration(
                       color: AppColors.maroon,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.storefront, color: AppColors.gold, size: 36),
+                    child: Icon(Icons.storefront, color: AppColors.gold, size: 36.sp),
                   ),
                 ),
-                const SizedBox(height: 16),
+                16.verticalSpace,
                 Center(
                   child: Text('MARUTHI EATS',
-                      style: AppTheme.logoStyle.copyWith(color: AppColors.maroon)),
+                      style: AppTheme.logoStyle.copyWith(color: AppColors.maroon, fontSize: 24.sp)),
                 ),
-                const SizedBox(height: 4),
-                const Center(
-                  child: Text('Restaurant Admin', style: TextStyle(color: AppColors.textDark)),
+                4.verticalSpace,
+                Center(
+                  child: Text('Restaurant Admin', style: TextStyle(color: AppColors.textDark, fontSize: 13.sp, fontWeight: FontWeight.w500)),
                 ),
-                const SizedBox(height: 32),
+                32.verticalSpace,
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(hintText: 'Staff email'),
+                  decoration: const InputDecoration(
+                    hintText: 'Staff email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                12.verticalSpace,
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(hintText: 'Password'),
+                  decoration: const InputDecoration(
+                    hintText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
                 ),
                 if (_error != null) ...[
-                  const SizedBox(height: 10),
-                  Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                  10.verticalSpace,
+                  Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 11.sp, fontWeight: FontWeight.w500)),
                 ],
-                const SizedBox(height: 20),
+                24.verticalSpace,
                 ElevatedButton(
                   onPressed: _loading ? null : _login,
                   child: _loading
-                      ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
+                      ? SizedBox(
+                          height: 20.sp, width: 20.sp,
+                          child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.textDark))
                       : const Text('Sign In'),
                 ),
+                20.verticalSpace,
               ],
             ),
           ),
@@ -108,15 +123,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       // AuthGate (in main.dart) picks up the signed-in state automatically.
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _loading = false;
-        _error = e.message ?? 'Sign in failed. Check your details.';
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.message ?? 'Sign in failed. Check your details.';
+        });
+      }
     } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = 'Sign in failed. Please try again.';
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Sign in failed. Please try again.';
+        });
+      }
     }
   }
 }

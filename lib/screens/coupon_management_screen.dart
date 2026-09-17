@@ -15,6 +15,9 @@ class CouponManagementScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('coupons').snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Could not load coupons. Please try again.'));
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.maroon));
           }
@@ -74,68 +77,90 @@ class _CouponCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
-      child: ListTile(
-        contentPadding: EdgeInsets.all(16.w),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CouponFormScreen(existing: coupon)),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: AppColors.maroon.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.r),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: EdgeInsets.all(16.w),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => CouponFormScreen(existing: coupon)),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.maroon.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  coupon.code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.maroon,
+                      fontSize: 14.sp),
+                ),
               ),
-              child: Text(
-                coupon.code,
-                style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.maroon, fontSize: 14.sp),
               ),
-            ),
-            const Spacer(),
-            Switch.adaptive(
-              value: coupon.isActive,
-              activeColor: AppColors.maroon,
-              onChanged: (val) {
-                FirebaseFirestore.instance.collection('coupons').doc(coupon.id).update({'is_active': val});
-              },
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            12.verticalSpace,
-            Row(
-              children: [
-                Text('₹${coupon.amount.toStringAsFixed(0)} OFF', 
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp, color: AppColors.textDark)),
-                10.horizontalSpace,
-                if (coupon.minOrderValue > 0)
-                  Text('min. order ₹${coupon.minOrderValue.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
-              ],
-            ),
-            8.verticalSpace,
-            if (coupon.expiryDate != null)
-              Row(
+              8.horizontalSpace,
+              Switch.adaptive(
+                value: coupon.isActive,
+                activeColor: AppColors.maroon,
+                onChanged: (val) {
+                  FirebaseFirestore.instance
+                      .collection('coupons')
+                      .doc(coupon.id)
+                      .update({'is_active': val});
+                },
+              ),
+            ],
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              12.verticalSpace,
+              Wrap(
+                spacing: 10.w,
+                runSpacing: 4.h,
                 children: [
-                  Icon(Icons.event_available, size: 12.sp, color: Colors.grey),
-                  4.horizontalSpace,
-                  Text(
-                    'Expires: ${DateFormat('dd MMM yyyy').format(coupon.expiryDate!)}',
-                    style: TextStyle(fontSize: 11.sp, color: Colors.grey),
-                  ),
+                  Text('₹${coupon.amount.toStringAsFixed(0)} OFF',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.sp,
+                          color: AppColors.textDark)),
+                  if (coupon.minOrderValue > 0)
+                    Text(
+                        'min. order ₹${coupon.minOrderValue.toStringAsFixed(0)}',
+                        style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
                 ],
               ),
-          ],
+              8.verticalSpace,
+              if (coupon.expiryDate != null)
+                Row(
+                  children: [
+                    Icon(Icons.event_available, size: 12.sp, color: Colors.grey),
+                    4.horizontalSpace,
+                    Text(
+                      'Expires: ${DateFormat('dd MMM yyyy').format(coupon.expiryDate!)}',
+                      style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

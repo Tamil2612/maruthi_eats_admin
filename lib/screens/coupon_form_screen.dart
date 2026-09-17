@@ -139,7 +139,10 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.5),
+                  ),
                   onPressed: _saving ? null : _delete,
                   child: const Text('Delete Coupon'),
                 ),
@@ -153,11 +156,14 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
   }
 
   Future<void> _pickExpiryDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final picked = await showDatePicker(
       context: context,
-      initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _expiryDate != null && !_expiryDate!.isBefore(today)
+          ? _expiryDate!
+          : today.add(const Duration(days: 30)),
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.light(primary: AppColors.maroon, onPrimary: Colors.white, surface: AppColors.cream),
@@ -165,7 +171,7 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _expiryDate = picked);
+    if (picked != null && mounted) setState(() => _expiryDate = picked);
   }
 
   Future<void> _save() async {
@@ -188,8 +194,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
       final existing = await collection.where('code', isEqualTo: normalizedCode).get();
       final duplicateExists = existing.docs.any((doc) => doc.id != widget.existing?.id);
       if (duplicateExists) {
-        setState(() => _saving = false);
         if (mounted) {
+          setState(() => _saving = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('A coupon with code "$normalizedCode" already exists')),
           );
@@ -213,8 +219,11 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 

@@ -1,6 +1,7 @@
-# Task List - Combo Item Display in Order Details
+# Task List - Category Menu Items UI Upgrade
 
-- `[x]` Update `OrderModel.fromFirestore` to support combo items
-- `[x]` Update `_ItemsCard` UI in `OrderDetailScreen` to show sub-items
-- `[x]` Verify combo item display
-- `[x]` Create walkthrough
+- `[x]` Convert `CategoryItemsScreen` to `StatefulWidget` and add search logic
+- `[x]` Implement Summary Header in `CategoryItemsScreen`
+- `[x]` Redesign `_MenuItemCard` with badges and improved typography
+- `[x]` Refine Loading and Empty states
+- `[x]` Final visual pass and cleanup

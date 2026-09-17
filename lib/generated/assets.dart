@@ -7,6 +7,7 @@ class Assets {
 
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsLogoGen logo = $AssetsLogoGen();
+  static const $AssetsSoundsGen sounds = $AssetsSoundsGen();
 }
 
 class $AssetsIconsGen {
@@ -24,6 +25,12 @@ class $AssetsLogoGen {
   final AssetGenImage logo = const AssetGenImage('assets/logo/logo.png');
   final AssetGenImage logoTransparent =
       const AssetGenImage('assets/logo/logo_transparent.png');
+}
+
+class $AssetsSoundsGen {
+  const $AssetsSoundsGen();
+
+  final String notification = 'assets/sounds/notification.mp3';
 }
 
 class AssetGenImage {

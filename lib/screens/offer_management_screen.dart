@@ -14,6 +14,9 @@ class OfferManagementScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('offers').snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Could not load offers. Please try again.'));
+          }
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           final offers = snapshot.data!.docs.map((d) => 
@@ -62,42 +65,70 @@ class _OfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)
+        ],
+      ),
+      child: Material(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.all(16.w),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OfferFormScreen(existing: offer))),
-        title: Row(
-          children: [
-            Expanded(child: Text(offer.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp))),
-            _TypeBadge(type: offer.type),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            8.verticalSpace,
-            Text(offer.description, style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600), maxLines: 2),
-            12.verticalSpace,
-            Row(
-              children: [
-                if (offer.type == OfferType.combo)
-                  Text('Price: ₹${offer.comboPrice.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.maroon, fontSize: 16.sp))
-                else
-                  Text('Buy ${offer.buyQty} Get ${offer.getQty} Free', style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.maroon, fontSize: 14.sp)),
-                const Spacer(),
-                Switch.adaptive(
-                  value: offer.isActive,
-                  activeColor: AppColors.maroon,
-                  onChanged: (v) {
-                    FirebaseFirestore.instance.collection('offers').doc(offer.id).update({'is_active': v});
-                  },
-                ),
-              ],
-            ),
-          ],
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: EdgeInsets.all(16.w),
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => OfferFormScreen(existing: offer))),
+          title: Row(
+            children: [
+              Expanded(
+                  child: Text(offer.title,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15.sp))),
+              _TypeBadge(type: offer.type),
+            ],
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              8.verticalSpace,
+              Text(offer.description,
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
+                  maxLines: 2),
+              12.verticalSpace,
+              Row(
+                children: [
+                  Expanded(
+                    child: offer.type == OfferType.combo
+                        ? Text('Price: ₹${offer.comboPrice.toStringAsFixed(0)}',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.maroon,
+                            fontSize: 16.sp))
+                        : Text('Buy ${offer.buyQty} Get ${offer.getQty} Free',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.maroon,
+                            fontSize: 14.sp),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                  ),
+                  Switch.adaptive(
+                    value: offer.isActive,
+                    activeColor: AppColors.maroon,
+                    onChanged: (v) {
+                      FirebaseFirestore.instance
+                          .collection('offers')
+                          .doc(offer.id)
+                          .update({'is_active': v});
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

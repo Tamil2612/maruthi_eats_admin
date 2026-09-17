@@ -36,6 +36,9 @@ class MenuManagementScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('categories').orderBy('order').snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return _LoadError(message: 'Could not load menu categories');
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppColors.maroon));
           }
@@ -65,71 +68,126 @@ class MenuManagementScreen extends StatelessWidget {
             );
           }
 
-          return GridView.builder(
-            padding: EdgeInsets.all(16.w),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16.w,
-              mainAxisSpacing: 16.h,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CategoryItemsScreen(category: cat)),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final columns =
+                  (constraints.maxWidth / 190.w).floor().clamp(2, 5).toInt();
+              return GridView.builder(
+                padding: EdgeInsets.all(16.w),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 16.w,
+                  mainAxisSpacing: 16.h,
+                  childAspectRatio: 0.9,
                 ),
-                onLongPress: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CategoryFormScreen(existing: cat)),
-                ),
-                child: Card(
-                  margin: EdgeInsets.zero,
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CategoryItemsScreen(category: cat)),
+                      ),
+                      onLongPress: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CategoryFormScreen(existing: cat)),
+                      ),
+                      child: Stack(
                         children: [
-                          Expanded(
-                            child: cat.imageUrl.isNotEmpty
-                                ? Image.network(cat.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(Icons.restaurant, size: 40.sp, color: AppColors.gold))
-                                : ColoredBox(color: AppColors.cream, child: Icon(Icons.restaurant, size: 40.sp, color: AppColors.gold)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: cat.imageUrl.isNotEmpty
+                                    ? Image.network(
+                                        cat.imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Icon(
+                                          Icons.restaurant,
+                                          size: 40.sp,
+                                          color: AppColors.gold,
+                                        ),
+                                      )
+                                    : ColoredBox(
+                                        color: AppColors.cream,
+                                        child: Icon(Icons.restaurant,
+                                            size: 40.sp,
+                                            color: AppColors.gold),
+                                      ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(12.w),
+                                child: Text(
+                                  cat.name,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.sp),
+                                ),
+                              ),
+                            ],
                           ),
-                          Padding(
-                            padding: EdgeInsets.all(12.w),
-                            child: Text(
-                              cat.name,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                          Positioned(
+                            top: 4.h,
+                            right: 4.w,
+                            child: CircleAvatar(
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.8),
+                              radius: 16.r,
+                              child: IconButton(
+                                icon: Icon(Icons.edit,
+                                    size: 16.sp, color: AppColors.maroon),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          CategoryFormScreen(existing: cat)),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      Positioned(
-                        top: 4.h,
-                        right: 4.w,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white.withValues(alpha: 0.8),
-                          radius: 16.r,
-                          child: IconButton(
-                            icon: Icon(Icons.edit, size: 16.sp, color: AppColors.maroon),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => CategoryFormScreen(existing: cat)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  final String message;
+  const _LoadError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 48.sp, color: AppColors.error),
+            12.verticalSpace,
+            Text(message, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15.sp)),
+            6.verticalSpace,
+            Text('Check your connection and try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.sp)),
+          ],
+        ),
       ),
     );
   }

@@ -118,7 +118,7 @@ class _OrdersList extends StatelessWidget {
                       ? 'All orders cleared!'
                       : 'No orders here',
                   style: TextStyle(
-                      color: AppColors.textDark.withOpacity(0.5),
+                      color: AppColors.textDark.withValues(alpha: 0.5),
                       fontSize: 16.sp),
                 ),
               ],
@@ -146,111 +146,117 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final next = nextStatus(order.orderStatus);
 
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: order.id)),
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => OrderDetailScreen(orderId: order.id)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Order #${order.id.substring(0, 6).toUpperCase()}',
-                  style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
-                ),
-                StatusBadge(status: order.orderStatus),
-              ],
-            ),
-            4.verticalSpace,
-            Text(
-              TimeUtils.formatTimeAgo(order.createdAt),
-              style: TextStyle(color: Colors.grey, fontSize: 11.sp),
-            ),
-            12.verticalSpace,
-            const Divider(height: 1),
-            12.verticalSpace,
-
-            // Items Summary
-            Text(
-              order.items
-                  .map((it) => '${it['qty']}x ${it['name']}')
-                  .join(', '),
-              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            8.verticalSpace,
-            Row(
-              children: [
-                Icon(Icons.location_on_outlined,
-                    size: 13.sp, color: Colors.grey),
-                4.horizontalSpace,
-                Expanded(
-                  child: Text(
-                    order.deliveryAddress,
-                    style: TextStyle(color: Colors.grey, fontSize: 11.sp),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            16.verticalSpace,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '₹${order.total.toStringAsFixed(0)}',
+                      'Order #${order.id.substring(0, 6).toUpperCase()}',
                       style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.maroon),
+                          fontWeight: FontWeight.bold, fontSize: 14.sp),
                     ),
-                    Text(
-                      order.paymentMode.toUpperCase(),
-                      style: TextStyle(
-                          fontSize: 9.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.gold),
+                    StatusBadge(status: order.orderStatus),
+                  ],
+                ),
+                4.verticalSpace,
+                Text(
+                  TimeUtils.formatTimeAgo(order.createdAt),
+                  style: TextStyle(color: Colors.grey, fontSize: 11.sp),
+                ),
+                12.verticalSpace,
+                const Divider(height: 1),
+                12.verticalSpace,
+
+                // Items Summary
+                Text(
+                  order.items.map((it) => '${it['qty']}x ${it['name']}').join(', '),
+                  style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                8.verticalSpace,
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined,
+                        size: 13.sp, color: Colors.grey),
+                    4.horizontalSpace,
+                    Expanded(
+                      child: Text(
+                        order.deliveryAddress,
+                        style: TextStyle(color: Colors.grey, fontSize: 11.sp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
-                if (next != null)
-                  ElevatedButton(
-                    onPressed: () => _updateStatus(context, next),
-                    style: ElevatedButton.styleFrom(
-                      padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                      textStyle: TextStyle(fontSize: 12.sp),
+                16.verticalSpace,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '₹${order.total.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.maroon),
+                        ),
+                        Text(
+                          order.paymentMode.toUpperCase(),
+                          style: TextStyle(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.gold),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      'Move to ${orderStatusLabel(next)}',
-                    ),
-                  ),
+                    if (next != null)
+                      ElevatedButton(
+                        onPressed: () => _updateStatus(context, next),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 6.h),
+                          textStyle: TextStyle(fontSize: 12.sp),
+                        ),
+                        child: Text(
+                          order.orderStatus == OrderStatus.placed
+                              ? 'Accept Order'
+                              : 'Move to ${orderStatusLabel(next)}',
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

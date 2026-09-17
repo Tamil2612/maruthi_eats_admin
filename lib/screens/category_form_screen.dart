@@ -89,7 +89,10 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.5),
+                  ),
                   onPressed: _saving ? null : _delete,
                   child: const Text('Delete Category'),
                 ),
@@ -144,8 +147,11 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 

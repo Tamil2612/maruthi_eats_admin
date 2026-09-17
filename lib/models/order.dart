@@ -59,7 +59,7 @@ String orderStatusLabel(OrderStatus status) {
 OrderStatus? nextStatus(OrderStatus current) {
   switch (current) {
     case OrderStatus.placed:
-      return OrderStatus.confirmed;
+      return OrderStatus.preparing;
     case OrderStatus.confirmed:
       return OrderStatus.preparing;
     case OrderStatus.preparing:

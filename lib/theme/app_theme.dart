@@ -50,10 +50,35 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.textDark,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          minimumSize: const Size(64, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+          textStyle:
+              GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
           elevation: 0,
+        ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.gold,
+        foregroundColor: AppColors.textDark,
+        elevation: 2,
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.maroon,
+          minimumSize: const Size(64, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: AppColors.maroon, width: 1.5),
+          textStyle:
+              GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.maroon,
+          textStyle:
+              GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
       cardTheme: CardThemeData(
@@ -83,10 +108,24 @@ class AppTheme {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
         selectedItemColor: AppColors.maroon,
-        unselectedItemColor: AppColors.textDark.withOpacity(0.4),
+        unselectedItemColor: AppColors.textDark.withValues(alpha: 0.4),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         elevation: 8,
+        selectedLabelStyle: GoogleFonts.poppins(
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+        unselectedLabelStyle: GoogleFonts.poppins(
+          fontWeight: FontWeight.w500,
+          fontSize: 11,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.textDark,
+        contentTextStyle: GoogleFonts.poppins(color: AppColors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dividerTheme: DividerThemeData(
         color: AppColors.textDark.withValues(alpha: 0.08),

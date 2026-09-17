@@ -334,52 +334,60 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildOrderCompactCard(OrderModel order) {
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 5)
         ],
       ),
-      child: InkWell(
-        onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => OrderDetailScreen(orderId: order.id))),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                  color: AppColors.cream,
-                  borderRadius: BorderRadius.circular(8.r)),
-              child: Icon(Icons.receipt_outlined,
-                  color: AppColors.maroon, size: 18.sp),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => OrderDetailScreen(orderId: order.id))),
+          child: Padding(
+            padding: EdgeInsets.all(12.w),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                      color: AppColors.cream,
+                      borderRadius: BorderRadius.circular(8.r)),
+                  child: Icon(Icons.receipt_outlined,
+                      color: AppColors.maroon, size: 18.sp),
+                ),
+                12.horizontalSpace,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order #${order.id.substring(0, 6).toUpperCase()}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12.sp)),
+                      2.verticalSpace,
+                      Text(
+                          order.createdAt != null
+                              ? DateFormat('hh:mm a').format(order.createdAt!)
+                              : '--',
+                          style: TextStyle(color: Colors.grey, fontSize: 10.sp)),
+                    ],
+                  ),
+                ),
+                Text('₹${order.total.toStringAsFixed(0)}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.maroon,
+                        fontSize: 13.sp)),
+                8.horizontalSpace,
+                Icon(Icons.chevron_right,
+                    color: Colors.grey.shade300, size: 16.sp),
+              ],
             ),
-            12.horizontalSpace,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Order #${order.id.substring(0, 6).toUpperCase()}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 12.sp)),
-                  2.verticalSpace,
-                  Text(
-                      order.createdAt != null ? DateFormat('hh:mm a').format(order.createdAt!) : '--',
-                      style: TextStyle(color: Colors.grey, fontSize: 10.sp)),
-                ],
-              ),
-            ),
-            Text('₹${order.total.toStringAsFixed(0)}',
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.maroon,
-                    fontSize: 13.sp)),
-            8.horizontalSpace,
-            Icon(Icons.chevron_right, color: Colors.grey.shade300, size: 16.sp),
-          ],
+          ),
         ),
       ),
     );

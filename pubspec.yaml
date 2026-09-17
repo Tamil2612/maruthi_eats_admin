@@ -13,18 +13,21 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
 
   # Firebase
-  firebase_core: ^4.13.0
-  cloud_firestore: ^6.8.0
-  firebase_auth: ^6.5.7
+  firebase_core: ^4.14.0
+  cloud_firestore: ^6.9.0
+  firebase_auth: ^6.6.1
+  firebase_messaging: ^16.6.0
 
   # UI
   google_fonts: ^8.2.1
   intl: ^0.20.3
   flutter_screenutil: ^5.9.3
   flutter_native_splash: ^2.4.8
+  flutter_local_notifications: ^22.3.0
 
   # Utils
   url_launcher: ^6.3.2
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -36,6 +39,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/logo/
+    - assets/sounds/
 
 flutter_launcher_icons:
   android: "launcher_icon"

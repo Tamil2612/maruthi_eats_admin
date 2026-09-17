@@ -36,7 +36,9 @@ class ImagePreview extends StatelessWidget {
                 ),
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return const Center(child: CircularProgressIndicator(color: AppColors.maroon));
+                  return const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.maroon));
                 },
               )
             : _buildPlaceholder(
@@ -51,7 +53,7 @@ class ImagePreview extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 40.sp, color: AppColors.maroon.withOpacity(0.3)),
+        Icon(icon, size: 40.sp, color: AppColors.maroon.withValues(alpha: 0.3)),
         8.verticalSpace,
         Text(
           text,

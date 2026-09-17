@@ -106,7 +106,11 @@ class OrderDetailScreen extends StatelessWidget {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                         ),
                         onPressed: () => _updateStatus(context, next),
-                        child: Text('Mark as ${orderStatusLabel(next)}'),
+                        child: Text(
+                          order.orderStatus == OrderStatus.placed
+                              ? 'Accept Order'
+                              : 'Mark as ${orderStatusLabel(next)}',
+                        ),
                       ),
                     ),
                   12.verticalSpace,
@@ -134,18 +138,23 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
-    await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
-      'order_status': orderStatusToString(status),
-      'updated_at': FieldValue.serverTimestamp(),
-    });
-    await FirebaseFirestore.instance
-        .collection('orders')
-        .doc(orderId)
-        .collection('status_log')
-        .add({
-      'status': orderStatusToString(status),
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    try {
+      final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
+      await orderRef.update({
+        'order_status': orderStatusToString(status),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+      await orderRef.collection('status_log').add({
+        'status': orderStatusToString(status),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update order: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _updatePaymentStatus(BuildContext context, String status) async {

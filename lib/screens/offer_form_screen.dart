@@ -31,7 +31,7 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
 
   // BOGO fields
   MenuItem? _buyItem;
-  int _buyQty = 2;
+  int _buyQty = 1;
   MenuItem? _getItem;
   int _getQty = 1;
 
@@ -50,9 +50,8 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
     _isActive = e?.isActive ?? true;
     _expiryDate = e?.expiryDate;
     _bundleItems = List.from(e?.bundleItems ?? []);
-
-    // In a real app, you'd fetch the MenuItem objects if buyItemId exists.
-    // For now, if editing BOGO, we might just show names or require re-selection.
+    _buyQty = e?.buyQty ?? 1;
+    _getQty = e?.getQty ?? 1;
   }
 
   @override
@@ -124,7 +123,11 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const CircularProgressIndicator(color: AppColors.textDark)
+                    ? SizedBox(
+                        height: 20.sp,
+                        width: 20.sp,
+                        child: const CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.textDark))
                     : Text(isEditing ? 'Save Changes' : 'Create Offer'),
               ),
             ),
@@ -133,7 +136,10 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.5),
+                  ),
                   onPressed: _delete,
                   child: const Text('Remove Offer'),
                 ),
@@ -214,7 +220,7 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
           selected: _buyItem?.name ?? widget.existing?.buyItemName ?? 'Select dish...',
           onTap: () async {
             final res = await _showPicker();
-            if (res != null) setState(() => _buyItem = res);
+            if (res != null && mounted) setState(() => _buyItem = res);
           },
         ),
         Row(
@@ -232,7 +238,7 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
           selected: _getItem?.name ?? widget.existing?.getItemName ?? 'Select dish...',
           onTap: () async {
             final res = await _showPicker();
-            if (res != null) setState(() => _getItem = res);
+            if (res != null && mounted) setState(() => _getItem = res);
           },
         ),
         Row(
@@ -270,7 +276,7 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
       isScrollControlled: true,
       builder: (_) => MenuItemPicker(multiSelect: true, initialSelectedIds: _bundleItems.map((e) => e.itemId).toList()),
     );
-    if (result != null) {
+    if (result != null && mounted) {
       setState(() {
         _bundleItems.removeWhere((e) => result.removedIds.contains(e.itemId));
         for (var res in result.added) {
@@ -295,13 +301,16 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
   }
 
   Future<void> _pickDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final res = await showDatePicker(
       context: context,
-      initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 7)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _expiryDate != null && !_expiryDate!.isBefore(today)
+          ? _expiryDate!
+          : today.add(const Duration(days: 7)),
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 365)),
     );
-    if (res != null) setState(() => _expiryDate = res);
+    if (res != null && mounted) setState(() => _expiryDate = res);
   }
 
   Future<void> _save() async {
@@ -360,8 +369,11 @@ class _OfferFormScreenState extends State<OfferFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      setState(() => _saving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 

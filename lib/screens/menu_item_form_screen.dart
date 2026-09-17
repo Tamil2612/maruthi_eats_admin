@@ -194,7 +194,9 @@ class _MenuItemFormScreenState extends State<MenuItemFormScreen> {
                 width: double.infinity,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error),
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.5),
+                  ),
                   onPressed: _saving ? null : _delete,
                   child: const Text('Delete Item'),
                 ),
@@ -265,8 +267,8 @@ class _MenuItemFormScreenState extends State<MenuItemFormScreen> {
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      setState(() => _saving = false);
       if (mounted) {
+        setState(() => _saving = false);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Could not save: $e')));
       }
