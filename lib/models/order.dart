@@ -86,6 +86,11 @@ class OrderModel {
   final OrderStatus orderStatus;
   final String deliveryAddress;
   final DateTime? createdAt;
+  // Set by the on_order_created Cloud Function shortly after the order is
+  // written. Absent until that function has run, so treat null/'ok' the
+  // same (not flagged) — see backend/functions/main.py.
+  final String? validationStatus;
+  final List<String> validationNotes;
 
   OrderModel({
     required this.id,
@@ -101,6 +106,8 @@ class OrderModel {
     required this.orderStatus,
     required this.deliveryAddress,
     this.createdAt,
+    this.validationStatus,
+    this.validationNotes = const [],
   });
 
   factory OrderModel.fromFirestore(String id, Map<String, dynamic> data) {
@@ -138,6 +145,10 @@ class OrderModel {
       createdAt: (data['created_at'] is Timestamp)
           ? (data['created_at'] as Timestamp).toDate()
           : null,
+      validationStatus: data['validation_status'] as String?,
+      validationNotes: (data['validation_notes'] is List)
+          ? (data['validation_notes'] as List).map((e) => e.toString()).toList()
+          : const [],
     );
   }
 }

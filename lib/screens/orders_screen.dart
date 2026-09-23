@@ -174,10 +174,18 @@ class _OrderCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Order #${order.id.substring(0, 6).toUpperCase()}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14.sp),
+                    Row(
+                      children: [
+                        Text(
+                          'Order #${(order.id.length >= 6 ? order.id.substring(0, 6) : order.id).toUpperCase()}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14.sp),
+                        ),
+                        if (order.validationStatus == 'flagged') ...[
+                          6.horizontalSpace,
+                          Icon(Icons.warning_amber_rounded, size: 15.sp, color: AppColors.error),
+                        ],
+                      ],
                     ),
                     StatusBadge(status: order.orderStatus),
                   ],

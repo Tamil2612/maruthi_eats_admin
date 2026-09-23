@@ -46,6 +46,10 @@ class OrderDetailScreen extends StatelessWidget {
                     style: TextStyle(color: AppColors.textDark.withValues(alpha: 0.5), fontSize: 12.sp),
                   ),
                 ],
+                if (order.validationStatus == 'flagged') ...[
+                  16.verticalSpace,
+                  _FlaggedOrderBanner(notes: order.validationNotes),
+                ],
                 24.verticalSpace,
 
                 // Customer Details Section
@@ -193,6 +197,48 @@ class OrderDetailScreen extends StatelessWidget {
   }
 }
 
+class _FlaggedOrderBanner extends StatelessWidget {
+  final List<String> notes;
+  const _FlaggedOrderBanner({required this.notes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 16.sp, color: AppColors.error),
+              6.horizontalSpace,
+              Expanded(
+                child: Text(
+                  'Flagged — price/coupon mismatch detected',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5.sp, color: AppColors.error),
+                ),
+              ),
+            ],
+          ),
+          if (notes.isNotEmpty) ...[
+            6.verticalSpace,
+            ...notes.map((n) => Padding(
+              padding: EdgeInsets.only(top: 2.h),
+              child: Text('• $n', style: TextStyle(fontSize: 11.5.sp, color: AppColors.textDark.withValues(alpha: 0.8))),
+            )),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -314,7 +360,7 @@ class _ItemsCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                             fontSize: 13.sp,
                             color:
-                                isCombo ? AppColors.maroon : AppColors.textDark,
+                            isCombo ? AppColors.maroon : AppColors.textDark,
                           ),
                         ),
                       ),
@@ -369,7 +415,7 @@ class _ItemsCard extends StatelessWidget {
             children: [
               Text('Total Amount',
                   style:
-                      TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
+                  TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
               Text('₹${order.total.toStringAsFixed(0)}',
                   style: TextStyle(
                       fontWeight: FontWeight.w900,
