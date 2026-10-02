@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/order.dart';
+import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/new_order_overlay.dart';
 import 'orders_screen.dart';
@@ -18,12 +19,19 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _index = 0;
   StreamSubscription? _orderSubscription;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _alertedOrders = {};
-  OrderModel? _pendingOrder;
+
+  // Orders waiting for a decision. The first one is shown full screen; the
+  // next one appears as soon as it is accepted / dismissed.
+  final List<OrderModel> _alertQueue = [];
+  AppLifecycleState _lifecycle = AppLifecycleState.resumed;
+
+  OrderModel? get _pendingOrder =>
+      _alertQueue.isEmpty ? null : _alertQueue.first;
 
   static const _screens = [
     OrdersScreen(),
@@ -35,14 +43,27 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Opened from the full-screen notification: stop its repeating sound.
+    NotificationService().cancelOrderNotifications();
     _startOrderListener();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _orderSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycle = state;
+    if (state == AppLifecycleState.resumed) {
+      // App is visible again, the system notification is no longer needed.
+      NotificationService().cancelOrderNotifications();
+    }
   }
 
   void _startOrderListener() {
@@ -53,7 +74,7 @@ class _HomeShellState extends State<HomeShell> {
         .listen((snapshot) {
       for (var change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data() as Map<String, dynamic>?;
+          final data = change.doc.data();
           if (data != null) {
             final order = OrderModel.fromFirestore(change.doc.id, data);
             if (!_alertedOrders.contains(order.id)) {
@@ -67,21 +88,52 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _showAlert(OrderModel order) async {
     _alertedOrders.add(order.id);
-    setState(() {
-      _pendingOrder = order;
-    });
+    final wasEmpty = _alertQueue.isEmpty;
+    if (!mounted) return;
+    setState(() => _alertQueue.add(order));
 
+    // Stop the system notification's sound, the in-app alert takes over.
+    NotificationService().cancelOrderNotifications();
+
+    // App is in the background / screen is off: pull it to the front.
+    if (_lifecycle != AppLifecycleState.resumed) {
+      NotificationService().bringAppToForeground();
+    }
+
+    if (wasEmpty) await _startAlertSound();
+  }
+
+  Future<void> _startAlertSound() async {
     try {
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
       await _audioPlayer.play(AssetSource('sounds/notification.mp3'));
     } catch (e) {
       debugPrint('Error playing sound: $e');
     }
   }
 
+  Future<void> _stopAlertSound() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      debugPrint('Error stopping sound: $e');
+    }
+  }
+
+  /// Removes the order that is currently on screen. Keeps the sound running
+  /// while more orders are waiting.
+  void _resolveCurrentAlert() {
+    if (!mounted) return;
+    setState(() {
+      if (_alertQueue.isNotEmpty) _alertQueue.removeAt(0);
+    });
+    if (_alertQueue.isEmpty) _stopAlertSound();
+  }
+
   Future<void> _acceptOrder(OrderModel order) async {
     try {
       final orderRef =
-          FirebaseFirestore.instance.collection('orders').doc(order.id);
+      FirebaseFirestore.instance.collection('orders').doc(order.id);
       await orderRef.update({
         'order_status': orderStatusToString(OrderStatus.preparing),
         'updated_at': FieldValue.serverTimestamp(),
@@ -91,9 +143,7 @@ class _HomeShellState extends State<HomeShell> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      setState(() {
-        _pendingOrder = null;
-      });
+      _resolveCurrentAlert();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,6 +155,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final pending = _pendingOrder;
     return Stack(
       children: [
         Scaffold(
@@ -138,28 +189,30 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
         ),
-        if (_pendingOrder != null)
+        if (pending != null)
           NewOrderOverlay(
-            order: _pendingOrder!,
-            onAccept: () => _acceptOrder(_pendingOrder!),
-            onDismiss: () => setState(() => _pendingOrder = null),
+            key: ValueKey(pending.id),
+            order: pending,
+            pendingCount: _alertQueue.length,
+            onAccept: () => _acceptOrder(pending),
+            onDismiss: _resolveCurrentAlert,
           ),
       ],
     );
   }
 
   Widget _buildIcon(
-    String path,
-    bool active, {
-    double? width,
-    double? height,
-  }) {
+      String path,
+      bool active, {
+        double? width,
+        double? height,
+      }) {
     return Image.asset(
       path,
       width: width ?? 32.w,
       height: height ?? 32.w,
       color:
-          active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
+      active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
     );
   }
 }
