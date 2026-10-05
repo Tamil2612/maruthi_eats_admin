@@ -88,7 +88,13 @@ class _OrdersList extends StatelessWidget {
               child: CircularProgressIndicator(color: AppColors.maroon));
         }
 
+        // Unpaid / expired UPI orders are not real orders yet - the model
+        // would show them as "placed", so they are left out here.
         final allOrders = snapshot.data!.docs
+            .where((d) {
+          final status = (d.data() as Map<String, dynamic>)['order_status'];
+          return status != 'pending_payment' && status != 'payment_expired';
+        })
             .map((d) => OrderModel.fromFirestore(
             d.id, d.data() as Map<String, dynamic>))
             .toList();
