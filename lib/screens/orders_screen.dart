@@ -72,13 +72,35 @@ class _OrdersList extends StatelessWidget {
 
   const _OrdersList({required this.statusGroup});
 
+  Stream<QuerySnapshot> _buildStream() {
+    final baseQuery = FirebaseFirestore.instance.collection('orders');
+
+    switch (statusGroup) {
+      case _StatusGroup.active:
+        return baseQuery
+            .where('order_status', whereIn: ['placed', 'confirmed', 'preparing', 'out_for_delivery'])
+            .orderBy('created_at', descending: true)
+            .limit(100)
+            .snapshots();
+      case _StatusGroup.delivered:
+        return baseQuery
+            .where('order_status', isEqualTo: 'delivered')
+            .orderBy('created_at', descending: true)
+            .limit(50)
+            .snapshots();
+      case _StatusGroup.cancelled:
+        return baseQuery
+            .where('order_status', isEqualTo: 'cancelled')
+            .orderBy('created_at', descending: true)
+            .limit(50)
+            .snapshots();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('orders')
-          .orderBy('created_at', descending: true)
-          .snapshots(),
+      stream: _buildStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Center(child: Text('Could not load orders'));
@@ -88,28 +110,10 @@ class _OrdersList extends StatelessWidget {
               child: CircularProgressIndicator(color: AppColors.maroon));
         }
 
-        // Unpaid / expired UPI orders are not real orders yet - the model
-        // would show them as "placed", so they are left out here.
-        final allOrders = snapshot.data!.docs
-            .where((d) {
-          final status = (d.data() as Map<String, dynamic>)['order_status'];
-          return status != 'pending_payment' && status != 'payment_expired';
-        })
+        final filtered = snapshot.data!.docs
             .map((d) => OrderModel.fromFirestore(
-            d.id, d.data() as Map<String, dynamic>))
+                d.id, d.data() as Map<String, dynamic>))
             .toList();
-
-        final filtered = allOrders.where((o) {
-          switch (statusGroup) {
-            case _StatusGroup.active:
-              return o.orderStatus != OrderStatus.delivered &&
-                  o.orderStatus != OrderStatus.cancelled;
-            case _StatusGroup.delivered:
-              return o.orderStatus == OrderStatus.delivered;
-            case _StatusGroup.cancelled:
-              return o.orderStatus == OrderStatus.cancelled;
-          }
-        }).toList();
 
         if (filtered.isEmpty) {
           return Center(

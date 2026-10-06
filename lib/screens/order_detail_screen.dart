@@ -80,6 +80,14 @@ class OrderDetailScreen extends StatelessWidget {
                 8.verticalSpace,
                 _PaymentCard(order: order),
 
+                if (order.paymentMode == 'upi' && order.refundStatus != null) ...[
+                  12.verticalSpace,
+                  _RefundCard(
+                    order: order,
+                    onRetry: () => _retryRefund(context),
+                  ),
+                ],
+
                 if (order.paymentMode == 'cod' && order.paymentStatus != 'cod_collected') ...[
                   12.verticalSpace,
                   SizedBox(
@@ -127,7 +135,7 @@ class OrderDetailScreen extends StatelessWidget {
                         side: const BorderSide(color: AppColors.error),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                       ),
-                      onPressed: () => _confirmCancel(context),
+                      onPressed: () => _confirmCancel(context, order),
                       child: const Text('Cancel Order'),
                     ),
                   ),
@@ -167,12 +175,34 @@ class OrderDetailScreen extends StatelessWidget {
     });
   }
 
-  Future<void> _confirmCancel(BuildContext context) async {
+  Future<void> _retryRefund(BuildContext context) async {
+    try {
+      // The backend (on_order_refund_needed) picks this up and tries again.
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(orderId)
+          .update({'refund_status': 'retry_requested'});
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not retry the refund: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmCancel(BuildContext context, OrderModel order) async {
+    // A paid UPI order is refunded automatically, in full, when cancelled.
+    final refundsAutomatically = order.paymentMode == 'upi' &&
+        (order.paymentStatus == 'paid' || order.paymentStatus == 'paid_needs_refund');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel this order?'),
-        content: const Text('This cannot be undone.'),
+        content: Text(refundsAutomatically
+            ? 'The customer has already paid ₹${order.total.toStringAsFixed(0)} by UPI. '
+            'It will be refunded to them automatically.\n\nThis cannot be undone.'
+            : 'This cannot be undone.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
           TextButton(
@@ -485,6 +515,97 @@ class _PaymentCard extends StatelessWidget {
             color: isPaid ? AppColors.success : AppColors.warning,
             size: 20.sp,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class _RefundCard extends StatelessWidget {
+  final OrderModel order;
+  final VoidCallback onRetry;
+  const _RefundCard({required this.order, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = order.refundStatus;
+    final value = order.refundAmount ?? order.total;
+    final amount = '₹${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 2)}';
+
+    final String label;
+    final String message;
+    final Color color;
+    final IconData icon;
+
+    switch (status) {
+      case 'processed':
+        label = 'REFUNDED';
+        message = '$amount was refunded to the customer.';
+        color = AppColors.success;
+        icon = Icons.check_circle;
+        break;
+      case 'failed':
+        label = 'REFUND FAILED';
+        message = order.refundError ??
+            'The refund did not go through. Press Retry, or refund it from the Razorpay dashboard.';
+        color = AppColors.error;
+        icon = Icons.error_outline;
+        break;
+      case 'retry_requested':
+        label = 'RETRYING REFUND';
+        message = 'Trying the $amount refund again...';
+        color = AppColors.warning;
+        icon = Icons.autorenew;
+        break;
+      default: // 'pending'
+        label = 'REFUND IN PROGRESS';
+        message = '$amount is on its way back to the customer. Instant refunds '
+            'finish in minutes, otherwise it takes 5–7 working days.';
+        color = AppColors.warning;
+        icon = Icons.autorenew;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20.sp),
+              8.horizontalSpace,
+              Text(label,
+                  style: TextStyle(
+                      color: color, fontWeight: FontWeight.w800, fontSize: 12.sp)),
+            ],
+          ),
+          6.verticalSpace,
+          Text(message,
+              style: TextStyle(
+                  color: AppColors.textDark.withValues(alpha: 0.8), fontSize: 12.sp)),
+          if (status == 'failed') ...[
+            10.verticalSpace,
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                ),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry Refund'),
+                onPressed: onRetry,
+              ),
+            ),
+          ],
         ],
       ),
     );

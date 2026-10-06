@@ -83,6 +83,10 @@ class OrderModel {
   final double couponDiscount;
   final String paymentMode; // 'upi' | 'cod'
   final String paymentStatus;
+  // Written by the backend: 'pending' | 'processed' | 'failed' | 'retry_requested'
+  final String? refundStatus;
+  final double? refundAmount;
+  final String? refundError;
   final OrderStatus orderStatus;
   final String deliveryAddress;
   final DateTime? createdAt;
@@ -103,6 +107,9 @@ class OrderModel {
     this.couponDiscount = 0.0,
     required this.paymentMode,
     required this.paymentStatus,
+    this.refundStatus,
+    this.refundAmount,
+    this.refundError,
     required this.orderStatus,
     required this.deliveryAddress,
     this.createdAt,
@@ -140,6 +147,9 @@ class OrderModel {
       couponDiscount: (data['coupon_discount'] ?? 0).toDouble(),
       paymentMode: data['payment_mode'] ?? 'cod',
       paymentStatus: data['payment_status'] ?? 'pending',
+      refundStatus: data['refund_status'] as String?,
+      refundAmount: (data['refund_amount'] as num?)?.toDouble(),
+      refundError: data['refund_error'] as String?,
       orderStatus: orderStatusFromString(data['order_status'] ?? 'placed'),
       deliveryAddress: data['delivery_address'] ?? 'No address provided',
       createdAt: (data['created_at'] is Timestamp)

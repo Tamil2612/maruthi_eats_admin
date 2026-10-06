@@ -11,6 +11,7 @@ import 'orders_screen.dart';
 import 'menu_management_screen.dart';
 import 'reports_screen.dart';
 import 'promotions_parent_screen.dart';
+import 'restaurant_settings_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -38,6 +39,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     MenuManagementScreen(),
     ReportsScreen(),
     PromotionsParentScreen(),
+    RestaurantSettingsScreen(),
   ];
 
   @override
@@ -185,6 +187,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 activeIcon: _buildIcon('assets/icons/coupon.png', true,
                     width: 24.w, height: 28.h),
                 label: 'Offers',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings),
+                label: 'Settings',
               ),
             ],
           ),
