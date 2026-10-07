@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/order.dart';
 import '../services/auth_service.dart';
@@ -282,14 +283,12 @@ class _OrderCard extends StatelessWidget {
 
   Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
     try {
-      final orderRef = FirebaseFirestore.instance.collection('orders').doc(order.id);
-      await orderRef.update({
+      final functionName = status == OrderStatus.cancelled ? 'cancel_order' : 'update_order_status';
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable(functionName)
+          .call({
+        'order_id': order.id,
         'order_status': orderStatusToString(status),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-      await orderRef.collection('status_log').add({
-        'status': orderStatusToString(status),
-        'timestamp': FieldValue.serverTimestamp(),
       });
 
       if (context.mounted) {

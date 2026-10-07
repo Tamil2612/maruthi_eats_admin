@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/order.dart';
@@ -151,14 +152,12 @@ class OrderDetailScreen extends StatelessWidget {
 
   Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
     try {
-      final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
-      await orderRef.update({
+      final functionName = status == OrderStatus.cancelled ? 'cancel_order' : 'update_order_status';
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable(functionName)
+          .call({
+        'order_id': orderId,
         'order_status': orderStatusToString(status),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-      await orderRef.collection('status_log').add({
-        'status': orderStatusToString(status),
-        'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
       if (context.mounted) {
@@ -170,18 +169,28 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Future<void> _updatePaymentStatus(BuildContext context, String status) async {
-    await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
-      'payment_status': status,
-    });
+    try {
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('mark_cod_collected')
+          .call({
+        'order_id': orderId,
+      });
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update payment status: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _retryRefund(BuildContext context) async {
     try {
-      // The backend (on_order_refund_needed) picks this up and tries again.
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .doc(orderId)
-          .update({'refund_status': 'retry_requested'});
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('retry_refund')
+          .call({
+        'order_id': orderId,
+      });
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

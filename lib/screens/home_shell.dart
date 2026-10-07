@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/order.dart';
@@ -134,15 +135,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   Future<void> _acceptOrder(OrderModel order) async {
     try {
-      final orderRef =
-      FirebaseFirestore.instance.collection('orders').doc(order.id);
-      await orderRef.update({
-        'order_status': orderStatusToString(OrderStatus.preparing),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-      await orderRef.collection('status_log').add({
-        'status': orderStatusToString(OrderStatus.preparing),
-        'timestamp': FieldValue.serverTimestamp(),
+      await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('update_order_status')
+          .call({
+        'order_id': order.id,
+        'order_status': 'preparing',
       });
 
       _resolveCurrentAlert();
