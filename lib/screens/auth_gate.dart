@@ -7,8 +7,40 @@ import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'home_shell.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  String? _subscribedUid;
+
+  void _onStaffVerified(User user) {
+    if (_subscribedUid != user.uid) {
+      _subscribedUid = user.uid;
+      FirebaseMessaging.instance.subscribeToTopic('admin_orders').catchError((e) {
+        debugPrint('Error subscribing to admin_orders: $e');
+      });
+    }
+  }
+
+  void _onLoggedOut() {
+    if (_subscribedUid != null) {
+      _subscribedUid = null;
+      FirebaseMessaging.instance.unsubscribeFromTopic('admin_orders').catchError((e) {
+        debugPrint('Error unsubscribing from admin_orders: $e');
+      });
+    }
+  }
+
+  void _handleUnauthorized() {
+    _onLoggedOut();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AuthService().signOut();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +56,10 @@ class AuthGate extends StatelessWidget {
 
         final user = snapshot.data;
         if (user == null) {
+          _onLoggedOut();
           return const LoginScreen();
         }
 
-        // Verify that a staff/{uid} document exists in Firestore
         return FutureBuilder<DocumentSnapshot>(
           future: FirebaseFirestore.instance.collection('staff').doc(user.uid).get(),
           builder: (context, staffSnapshot) {
@@ -54,15 +86,12 @@ class AuthGate extends StatelessWidget {
             }
 
             if (staffSnapshot.hasError || !staffSnapshot.hasData || !staffSnapshot.data!.exists) {
-              // Unauthorized user: sign out immediately and return to login
-              AuthService().signOut();
+              _handleUnauthorized();
               return const LoginScreen();
             }
 
-            // Authorized staff member: subscribe to admin orders topic
-            FirebaseMessaging.instance.subscribeToTopic('admin_orders').catchError((e) {
-              debugPrint('Error subscribing to admin_orders: $e');
-            });
+            // Authorized staff member
+            _onStaffVerified(user);
 
             return const HomeShell();
           },

@@ -191,12 +191,6 @@ class NotificationService {
       debugPrint('FCM message opened app: ${message.data}');
     });
 
-    try {
-      await _fcm.subscribeToTopic('admin_orders');
-    } catch (e) {
-      debugPrint('Error subscribing to admin_orders topic: $e');
-    }
-
     final initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       debugPrint('FCM initial message: ${initialMessage.data}');
