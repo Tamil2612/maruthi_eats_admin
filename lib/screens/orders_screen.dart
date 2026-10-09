@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/order.dart';
 import '../services/auth_service.dart';
+import '../services/order_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_badge.dart';
 import '../utils/time_utils.dart';
@@ -113,7 +114,7 @@ class _OrdersList extends StatelessWidget {
 
         final filtered = snapshot.data!.docs
             .map((d) => OrderModel.fromFirestore(
-                d.id, d.data() as Map<String, dynamic>))
+            d.id, d.data() as Map<String, dynamic>))
             .toList();
 
         if (filtered.isEmpty) {
@@ -141,17 +142,51 @@ class _OrdersList extends StatelessWidget {
           padding: EdgeInsets.all(16.w),
           itemCount: filtered.length,
           separatorBuilder: (context, index) => 12.verticalSpace,
-          itemBuilder: (context, i) => _OrderCard(order: filtered[i]),
+          itemBuilder: (context, i) => _OrderCard(
+            // Keyed by order so a card's "updating" state can never jump to a
+            // different order when the list reorders.
+            key: ValueKey(filtered[i].id),
+            order: filtered[i],
+          ),
         );
       },
     );
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends StatefulWidget {
   final OrderModel order;
 
-  const _OrderCard({required this.order});
+  const _OrderCard({super.key, required this.order});
+
+  @override
+  State<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<_OrderCard> {
+  // True from the tap until the live list shows the new status. The status
+  // change takes a few seconds on the server, so the button shows progress
+  // instead of looking frozen (and cannot be tapped twice).
+  bool _busy = false;
+  Timer? _releaseTimer;
+
+  OrderModel get order => widget.order;
+
+  @override
+  void didUpdateWidget(covariant _OrderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.orderStatus != widget.order.orderStatus) {
+      // The new status has arrived: release the button.
+      _releaseTimer?.cancel();
+      _busy = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _releaseTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -259,13 +294,29 @@ class _OrderCard extends StatelessWidget {
                     ),
                     if (next != null)
                       ElevatedButton(
-                        onPressed: () => _updateStatus(context, next),
+                        onPressed: _busy ? null : () => _updateStatus(next),
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(
                               horizontal: 12.w, vertical: 6.h),
                           textStyle: TextStyle(fontSize: 12.sp),
                         ),
-                        child: Text(
+                        child: _busy
+                            ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 14.r,
+                              height: 14.r,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            8.horizontalSpace,
+                            const Text('Updating...'),
+                          ],
+                        )
+                            : Text(
                           order.orderStatus == OrderStatus.placed
                               ? 'Accept Order'
                               : 'Move to ${orderStatusLabel(next)}',
@@ -281,27 +332,28 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
-    try {
-      final functionName = status == OrderStatus.cancelled ? 'cancel_order' : 'update_order_status';
-      await FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable(functionName)
-          .call({
-        'order_id': order.id,
-        'order_status': orderStatusToString(status),
-      });
+  Future<void> _updateStatus(OrderStatus status) async {
+    if (_busy) return;
+    setState(() => _busy = true);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order moved to ${orderStatusLabel(status)}')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e')),
-        );
-      }
+    final error = await OrderService.updateStatus(order.id, status);
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    if (error != null) {
+      setState(() => _busy = false);
+      messenger.showSnackBar(SnackBar(content: Text(error)));
+      return;
     }
+
+    messenger.showSnackBar(
+      SnackBar(content: Text('Order moved to ${orderStatusLabel(status)}')),
+    );
+    // Keep the button locked until the live list reflects the new status
+    // (didUpdateWidget); this timer is only a safety net.
+    _releaseTimer?.cancel();
+    _releaseTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _busy = false);
+    });
   }
 }

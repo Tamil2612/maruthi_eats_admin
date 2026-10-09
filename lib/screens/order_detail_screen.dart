@@ -1,15 +1,73 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/order.dart';
+import '../services/order_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_badge.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   const OrderDetailScreen({super.key, required this.orderId});
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  String get orderId => widget.orderId;
+
+  // True while an action (status change, cash collected, refund retry) runs.
+  // Status changes take a few seconds on the server, so the screen shows
+  // progress and locks the buttons instead of looking frozen.
+  bool _busy = false;
+  // Set for status changes: the screen stays locked until the live order shows
+  // a different status than this one (or the safety timer fires).
+  OrderStatus? _busyFrom;
+  Timer? _releaseTimer;
+
+  @override
+  void dispose() {
+    _releaseTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _run(
+      Future<String?> Function() action, {
+        String? successMessage,
+        OrderStatus? holdUntilChangedFrom,
+      }) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _busyFrom = holdUntilChangedFrom;
+    });
+
+    final error = await action();
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    if (error != null) {
+      setState(() => _busy = false);
+      messenger.showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    if (successMessage != null) {
+      messenger.showSnackBar(SnackBar(content: Text(successMessage)));
+    }
+
+    if (holdUntilChangedFrom != null) {
+      _releaseTimer?.cancel();
+      _releaseTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted) setState(() => _busy = false);
+      });
+    } else {
+      setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +84,15 @@ class OrderDetailScreen extends StatelessWidget {
               snapshot.data!.id, snapshot.data!.data() as Map<String, dynamic>);
           final next = nextStatus(order.orderStatus);
 
-          return SingleChildScrollView(
+          // The new status has arrived from the server: release the screen.
+          if (_busy && _busyFrom != null && order.orderStatus != _busyFrom) {
+            _releaseTimer?.cancel();
+            _busy = false;
+            _busyFrom = null;
+          }
+          final busy = _busy;
+
+          final content = SingleChildScrollView(
             padding: EdgeInsets.all(20.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +151,7 @@ class OrderDetailScreen extends StatelessWidget {
                   12.verticalSpace,
                   _RefundCard(
                     order: order,
-                    onRetry: () => _retryRefund(context),
+                    onRetry: busy ? null : _retryRefund,
                   ),
                 ],
 
@@ -100,7 +166,7 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Mark Cash Collected'),
-                      onPressed: () => _updatePaymentStatus(context, 'cod_collected'),
+                      onPressed: busy ? null : _markCashCollected,
                     ),
                   ),
                 ],
@@ -118,8 +184,24 @@ class OrderDetailScreen extends StatelessWidget {
                           padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                         ),
-                        onPressed: () => _updateStatus(context, next),
-                        child: Text(
+                        onPressed: busy ? null : () => _changeStatus(order, next),
+                        child: busy
+                            ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 18.r,
+                              height: 18.r,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                            10.horizontalSpace,
+                            const Text('Updating order...'),
+                          ],
+                        )
+                            : Text(
                           order.orderStatus == OrderStatus.placed
                               ? 'Accept Order'
                               : 'Mark as ${orderStatusLabel(next)}',
@@ -136,7 +218,7 @@ class OrderDetailScreen extends StatelessWidget {
                         side: const BorderSide(color: AppColors.error),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                       ),
-                      onPressed: () => _confirmCancel(context, order),
+                      onPressed: busy ? null : () => _confirmCancel(context, order),
                       child: const Text('Cancel Order'),
                     ),
                   ),
@@ -145,59 +227,46 @@ class OrderDetailScreen extends StatelessWidget {
               ],
             ),
           );
+
+          return Column(
+            children: [
+              // Progress bar across the top while a change is being saved.
+              if (busy)
+                const LinearProgressIndicator(
+                  minHeight: 3,
+                  color: AppColors.maroon,
+                  backgroundColor: Colors.transparent,
+                )
+              else
+                const SizedBox(height: 3),
+              Expanded(child: content),
+            ],
+          );
         },
       ),
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, OrderStatus status) async {
-    try {
-      final functionName = status == OrderStatus.cancelled ? 'cancel_order' : 'update_order_status';
-      await FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable(functionName)
-          .call({
-        'order_id': orderId,
-        'order_status': orderStatusToString(status),
-      });
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update order: $e')),
-        );
-      }
-    }
+  Future<void> _changeStatus(OrderModel order, OrderStatus status) {
+    return _run(
+          () => OrderService.updateStatus(orderId, status),
+      successMessage: 'Order moved to ${orderStatusLabel(status)}',
+      holdUntilChangedFrom: order.orderStatus,
+    );
   }
 
-  Future<void> _updatePaymentStatus(BuildContext context, String status) async {
-    try {
-      await FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable('mark_cod_collected')
-          .call({
-        'order_id': orderId,
-      });
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update payment status: $e')),
-        );
-      }
-    }
+  Future<void> _markCashCollected() {
+    return _run(
+          () => OrderService.markCodCollected(orderId),
+      successMessage: 'Cash marked as collected',
+    );
   }
 
-  Future<void> _retryRefund(BuildContext context) async {
-    try {
-      await FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable('retry_refund')
-          .call({
-        'order_id': orderId,
-      });
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not retry the refund: $e')),
-        );
-      }
-    }
+  Future<void> _retryRefund() {
+    return _run(
+          () => OrderService.retryRefund(orderId),
+      successMessage: 'Retrying the refund...',
+    );
   }
 
   Future<void> _confirmCancel(BuildContext context, OrderModel order) async {
@@ -221,10 +290,8 @@ class OrderDetailScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) {
-      if (context.mounted) {
-        await _updateStatus(context, OrderStatus.cancelled);
-      }
+    if (confirmed == true && mounted) {
+      await _changeStatus(order, OrderStatus.cancelled);
     }
   }
 
@@ -533,7 +600,8 @@ class _PaymentCard extends StatelessWidget {
 
 class _RefundCard extends StatelessWidget {
   final OrderModel order;
-  final VoidCallback onRetry;
+  // null disables the Retry button (an action is already running).
+  final VoidCallback? onRetry;
   const _RefundCard({required this.order, required this.onRetry});
 
   @override
