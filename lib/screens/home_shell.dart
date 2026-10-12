@@ -13,6 +13,7 @@ import 'menu_management_screen.dart';
 import 'reports_screen.dart';
 import 'promotions_parent_screen.dart';
 import 'restaurant_settings_screen.dart';
+import '../services/order_service.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -26,6 +27,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   StreamSubscription? _orderSubscription;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _alertedOrders = {};
+  bool _accepting = false; // the server is accepting the order on screen
 
   // Orders waiting for a decision. The first one is shown full screen; the
   // next one appears as soon as it is accepted / dismissed.
@@ -134,22 +136,25 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   }
 
   Future<void> _acceptOrder(OrderModel order) async {
-    try {
-      await FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable('update_order_status')
-          .call({
-        'order_id': order.id,
-        'order_status': 'preparing',
-      });
+    if (_accepting) return;
+    setState(() => _accepting = true);
 
-      _resolveCurrentAlert();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error accepting order: $e')),
-        );
-      }
+    final error =
+        await OrderService.updateStatus(order.id, OrderStatus.preparing);
+    if (!mounted) return;
+
+    setState(() => _accepting = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
     }
+
+    _resolveCurrentAlert();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order accepted')),
+    );
   }
 
   @override
@@ -198,6 +203,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             key: ValueKey(pending.id),
             order: pending,
             pendingCount: _alertQueue.length,
+            isAccepting: _accepting,
             onAccept: () => _acceptOrder(pending),
             onDismiss: _resolveCurrentAlert,
           ),
@@ -206,17 +212,17 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   }
 
   Widget _buildIcon(
-      String path,
-      bool active, {
-        double? width,
-        double? height,
-      }) {
+    String path,
+    bool active, {
+    double? width,
+    double? height,
+  }) {
     return Image.asset(
       path,
       width: width ?? 32.w,
       height: height ?? 32.w,
       color:
-      active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
+          active ? AppColors.maroon : AppColors.textDark.withValues(alpha: 0.4),
     );
   }
 }

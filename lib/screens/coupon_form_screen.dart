@@ -18,9 +18,12 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
   late final TextEditingController _code;
   late final TextEditingController _amount;
   late final TextEditingController _minOrder;
+  late final TextEditingController _maxUsesPerUser;
+  late final TextEditingController _maxGlobalUses;
   late final TextEditingController _rules;
   DateTime? _expiryDate;
   bool _isActive = true;
+  bool _isFirstOrderOnly = false;
   bool _saving = false;
 
   @override
@@ -30,9 +33,12 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
     _code = TextEditingController(text: e?.code ?? '');
     _amount = TextEditingController(text: e != null ? e.amount.toStringAsFixed(0) : '');
     _minOrder = TextEditingController(text: e != null ? e.minOrderValue.toStringAsFixed(0) : '');
+    _maxUsesPerUser = TextEditingController(text: e?.maxUsesPerUser != null ? e!.maxUsesPerUser.toString() : '');
+    _maxGlobalUses = TextEditingController(text: e?.maxGlobalUses != null ? e!.maxGlobalUses.toString() : '');
     _rules = TextEditingController(text: e?.rules ?? '');
     _expiryDate = e?.expiryDate;
     _isActive = e?.isActive ?? true;
+    _isFirstOrderOnly = e?.isFirstOrderOnly ?? false;
   }
 
   @override
@@ -40,6 +46,8 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
     _code.dispose();
     _amount.dispose();
     _minOrder.dispose();
+    _maxUsesPerUser.dispose();
+    _maxGlobalUses.dispose();
     _rules.dispose();
     super.dispose();
   }
@@ -105,6 +113,38 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
                   ),
                   trailing: Icon(Icons.calendar_today, size: 18.sp, color: AppColors.maroon),
                   onTap: _pickExpiryDate,
+                ),
+              ],
+            ),
+            20.verticalSpace,
+            FormSection(
+              title: 'Usage Restrictions',
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('First Order Only (New Customers)', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
+                  subtitle: Text('Restrict coupon usage to accounts placing their very first qualifying order', style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                  value: _isFirstOrderOnly,
+                  activeColor: AppColors.maroon,
+                  onChanged: (v) => setState(() => _isFirstOrderOnly = v),
+                ),
+                12.verticalSpace,
+                TextField(
+                  controller: _maxUsesPerUser,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Max Uses Per User (e.g. 1 for 1-time promo, leave blank for unlimited)',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                16.verticalSpace,
+                TextField(
+                  controller: _maxGlobalUses,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    hintText: 'Max Global Uses (Total redemptions across all users, leave blank for unlimited)',
+                    prefixIcon: Icon(Icons.group_outlined),
+                  ),
                 ),
               ],
             ),
@@ -203,18 +243,36 @@ class _CouponFormScreenState extends State<CouponFormScreen> {
         return;
       }
 
-      final data = {
+      final maxPerUser = int.tryParse(_maxUsesPerUser.text.trim());
+      final maxGlobal = int.tryParse(_maxGlobalUses.text.trim());
+      final isEditing = widget.existing != null;
+
+      final data = <String, dynamic>{
         'code': normalizedCode,
         'amount': amount,
         'min_order_value': double.tryParse(_minOrder.text.trim()) ?? 0,
         'expiry_date': _expiryDate != null ? Timestamp.fromDate(_expiryDate!) : null,
         'rules': _rules.text.trim(),
         'is_active': _isActive,
+        'is_first_order_only': _isFirstOrderOnly,
       };
 
-      if (widget.existing != null) {
+      if (maxPerUser != null && maxPerUser > 0) {
+        data['max_uses_per_user'] = maxPerUser;
+      } else if (isEditing) {
+        data['max_uses_per_user'] = FieldValue.delete();
+      }
+
+      if (maxGlobal != null && maxGlobal > 0) {
+        data['max_global_uses'] = maxGlobal;
+      } else if (isEditing) {
+        data['max_global_uses'] = FieldValue.delete();
+      }
+
+      if (isEditing) {
         await collection.doc(widget.existing!.id).update(data);
       } else {
+        data['current_global_uses'] = 0;
         await collection.add(data);
       }
       if (mounted) Navigator.pop(context);

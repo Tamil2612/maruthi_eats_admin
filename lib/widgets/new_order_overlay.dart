@@ -10,6 +10,10 @@ class NewOrderOverlay extends StatefulWidget {
   final VoidCallback onAccept;
   final VoidCallback onDismiss;
 
+  /// True while the server is accepting the order (takes a few seconds): the
+  /// button shows progress and nothing else can be tapped.
+  final bool isAccepting;
+
   /// How many orders are waiting for a decision (including this one).
   final int pendingCount;
 
@@ -19,6 +23,7 @@ class NewOrderOverlay extends StatefulWidget {
     required this.onAccept,
     required this.onDismiss,
     this.pendingCount = 1,
+    this.isAccepting = false,
   });
 
   @override
@@ -102,7 +107,7 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
                 _buildAcceptButton(),
                 4.verticalSpace,
                 TextButton(
-                  onPressed: widget.onDismiss,
+                  onPressed: widget.isAccepting ? null : widget.onDismiss,
                   child: Text(
                     'Dismiss for now',
                     style: GoogleFonts.poppins(
@@ -196,19 +201,19 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
         animation: _pulse,
         builder: (context, _) {
           Widget ring(double t) => Transform.scale(
-            scale: 1 + t * 0.6,
-            child: Opacity(
-              opacity: (1 - t) * 0.6,
-              child: Container(
-                width: 92.w,
-                height: 92.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.gold, width: 3),
+                scale: 1 + t * 0.6,
+                child: Opacity(
+                  opacity: (1 - t) * 0.6,
+                  child: Container(
+                    width: 92.w,
+                    height: 92.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.gold, width: 3),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
+              );
 
           return Stack(
             alignment: Alignment.center,
@@ -363,7 +368,9 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isUpi ? Icons.account_balance_wallet_outlined : Icons.payments_outlined,
+            isUpi
+                ? Icons.account_balance_wallet_outlined
+                : Icons.payments_outlined,
             size: 16.sp,
             color: color,
           ),
@@ -480,28 +487,28 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
 
   Widget _buildBill() {
     Widget line(String label, String value, {Color? color}) => Padding(
-      padding: EdgeInsets.only(bottom: 4.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 12.sp,
-              color: color ?? Colors.grey.shade600,
-            ),
+          padding: EdgeInsets.only(bottom: 4.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  color: color ?? Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? Colors.grey.shade700,
+                ),
+              ),
+            ],
           ),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              color: color ?? Colors.grey.shade700,
-            ),
-          ),
-        ],
-      ),
-    );
+        );
 
     final fee = order.deliveryFee;
     return Column(
@@ -509,7 +516,8 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
         if (order.itemTotal != null)
           line('Item total', '₹${order.itemTotal!.toStringAsFixed(0)}'),
         if (fee != null)
-          line('Delivery fee', fee == 0 ? 'FREE' : '₹${fee.toStringAsFixed(0)}'),
+          line(
+              'Delivery fee', fee == 0 ? 'FREE' : '₹${fee.toStringAsFixed(0)}'),
         if (order.couponDiscount > 0)
           line(
             order.couponCode != null && order.couponCode!.isNotEmpty
@@ -563,10 +571,19 @@ class _NewOrderOverlayState extends State<NewOrderOverlay>
             borderRadius: BorderRadius.circular(18.r),
           ),
         ),
-        onPressed: widget.onAccept,
-        icon: Icon(Icons.check_circle_rounded, size: 24.sp),
+        onPressed: widget.isAccepting ? null : widget.onAccept,
+        icon: widget.isAccepting
+            ? SizedBox(
+                width: 22.sp,
+                height: 22.sp,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppColors.maroon,
+                ),
+              )
+            : Icon(Icons.check_circle_rounded, size: 24.sp),
         label: Text(
-          'ACCEPT & START PREPARING',
+          widget.isAccepting ? 'ACCEPTING...' : 'ACCEPT & START PREPARING',
           style: GoogleFonts.poppins(
             fontSize: 15.sp,
             fontWeight: FontWeight.w800,

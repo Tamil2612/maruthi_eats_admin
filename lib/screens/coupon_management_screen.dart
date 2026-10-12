@@ -98,22 +98,26 @@ class _CouponCard extends StatelessWidget {
           title: Row(
             children: [
               Expanded(
-                child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.maroon.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.maroon.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        coupon.code,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.maroon,
+                            fontSize: 14.sp),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  coupon.code,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.maroon,
-                      fontSize: 14.sp),
-                ),
-              ),
               ),
               8.horizontalSpace,
               Switch.adaptive(
@@ -148,7 +152,47 @@ class _CouponCard extends StatelessWidget {
                 ],
               ),
               8.verticalSpace,
-              if (coupon.expiryDate != null)
+              Wrap(
+                spacing: 6.w,
+                runSpacing: 4.h,
+                children: [
+                  if (coupon.isFirstOrderOnly)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Text('FIRST ORDER ONLY', style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: AppColors.maroon)),
+                    ),
+                  if (coupon.maxUsesPerUser != null)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.maroon.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Text(
+                        coupon.maxUsesPerUser == 1 ? '1 USE / USER' : 'MAX ${coupon.maxUsesPerUser} USES / USER',
+                        style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: AppColors.maroon),
+                      ),
+                    ),
+                  if (coupon.maxGlobalUses != null)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Text(
+                        'GLOBAL: ${coupon.currentGlobalUses}/${coupon.maxGlobalUses}',
+                        style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                      ),
+                    ),
+                ],
+              ),
+              if (coupon.expiryDate != null) ...[
+                8.verticalSpace,
                 Row(
                   children: [
                     Icon(Icons.event_available, size: 12.sp, color: Colors.grey),
@@ -159,6 +203,7 @@ class _CouponCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ],
             ],
           ),
         ),
