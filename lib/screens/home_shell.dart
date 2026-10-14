@@ -190,9 +190,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                     width: 24.w, height: 28.h),
                 label: 'Offers',
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                activeIcon: Icon(Icons.settings),
+              BottomNavigationBarItem(
+                icon: _buildIcon('assets/icons/settings_menu.png', false,
+                    width: 24.w, height: 28.h),
+                activeIcon: _buildIcon('assets/icons/settings_menu.png', false,
+                    width: 24.w, height: 28.h),
                 label: 'Settings',
               ),
             ],
